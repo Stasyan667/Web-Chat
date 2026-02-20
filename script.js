@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
+const mongoose = require('mongoose');
 
 const app = express();
 const server = http.createServer(app);
@@ -14,6 +15,53 @@ const io = new Server(server, {
     transports: ['websocket', 'polling']
 });
 
+// Подключение к MongoDB Atlas
+mongoose.connect('mongodb+srv://chatUser:Stasyan667@stasyan667.xxxxx.mongodb.net/chatdb?retryWrites=true&w=majority')
+    .then(() => console.log('✅ Подключено к MongoDB'))
+    .catch(err => console.log('❌ Ошибка MongoDB:', err));
+
+// Схемы для MongoDB
+const userSchema = new mongoose.Schema({
+    socketId: String,
+    name: String,
+    email: String,
+    password: String,
+    country: String,
+    avatar: String,
+    avatarBackground: String,
+    friendCode: { type: String, unique: true },
+    online: Boolean,
+    lastSeen: Date,
+    friends: [String],
+    blacklist: [String]
+});
+
+const messageSchema = new mongoose.Schema({
+    roomId: String,
+    author: String,
+    authorId: String,
+    text: String,
+    avatar: String,
+    avatarBg: String,
+    time: String,
+    timestamp: { type: Date, default: Date.now },
+    reactions: { type: Map, of: [String], default: {} }
+});
+
+const privateRoomSchema = new mongoose.Schema({
+    roomId: { type: String, unique: true },
+    name: String,
+    password: String,
+    createdBy: String,
+    createdAt: { type: Date, default: Date.now },
+    users: [String]
+});
+
+// Модели
+const User = mongoose.model('User', userSchema);
+const Message = mongoose.model('Message', messageSchema);
+const PrivateRoom = mongoose.model('PrivateRoom', privateRoomSchema);
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
@@ -21,7 +69,7 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Хранилище данных
+// Хранилище данных (временное, для онлайн-статусов)
 let users = new Map();
 let userCodes = new Map();
 let rooms = {
@@ -33,46 +81,88 @@ let privateRooms = new Map();
 let friendRequests = new Map();
 let friends = new Map();
 
+// Загрузка сохраненных сообщений при старте
+async function loadSavedMessages() {
+    try {
+        const allMessages = await Message.find().lean();
+        allMessages.forEach(msg => {
+            if (!rooms[msg.roomId]) {
+                rooms[msg.roomId] = { name: msg.roomId, users: new Set(), messages: [] };
+            }
+            rooms[msg.roomId].messages.push(msg);
+        });
+        console.log('✅ Загружены сохраненные сообщения');
+    } catch (err) {
+        console.log('❌ Ошибка загрузки сообщений:', err);
+    }
+}
+loadSavedMessages();
+
 io.on('connection', (socket) => {
     console.log('Пользователь подключился:', socket.id);
     
     // Регистрация пользователя
-    socket.on('user:register', (userData) => {
-        if (!userData.friendCode) {
-            userData.friendCode = 'USR' + Math.floor(Math.random() * 10000);
+    socket.on('user:register', async (userData) => {
+        try {
+            if (!userData.friendCode) {
+                userData.friendCode = 'USR' + Math.floor(Math.random() * 10000);
+            }
+            
+            // Сохраняем в MongoDB
+            let user = await User.findOne({ friendCode: userData.friendCode });
+            if (!user) {
+                user = new User({
+                    socketId: socket.id,
+                    ...userData,
+                    online: true,
+                    lastSeen: new Date(),
+                    friends: [],
+                    blacklist: []
+                });
+                await user.save();
+            } else {
+                user.socketId = socket.id;
+                user.online = true;
+                user.lastSeen = new Date();
+                await user.save();
+            }
+            
+            // Сохраняем в памяти
+            users.set(socket.id, {
+                ...userData,
+                online: true,
+                lastSeen: new Date()
+            });
+            
+            userCodes.set(userData.friendCode, socket.id);
+            
+            socket.emit('user:registered', {
+                friendCode: userData.friendCode,
+                id: socket.id
+            });
+            
+            console.log(`Пользователь ${userData.name} зарегистрирован с кодом ${userData.friendCode}`);
+            updateAllOnlineCounts();
+        } catch (err) {
+            console.log('Ошибка регистрации:', err);
         }
-        
-        users.set(socket.id, {
-            ...userData,
-            online: true,
-            lastSeen: new Date()
-        });
-        
-        userCodes.set(userData.friendCode, socket.id);
-        
-        socket.emit('user:registered', {
-            friendCode: userData.friendCode,
-            id: socket.id
-        });
-        
-        console.log(`Пользователь ${userData.name} зарегистрирован с кодом ${userData.friendCode}`);
-        
-        // Обновляем онлайн счетчик во всех комнатах, где есть пользователь
-        updateAllOnlineCounts();
     });
     
     // Поиск пользователя по коду
-    socket.on('user:findByCode', (code) => {
-        const userId = userCodes.get(code);
-        if (userId && users.has(userId)) {
-            const user = users.get(userId);
-            socket.emit('user:found', {
-                id: userId,
-                name: user.name,
-                avatar: user.avatar,
-                online: user.online
-            });
-        } else {
+    socket.on('user:findByCode', async (code) => {
+        try {
+            const user = await User.findOne({ friendCode: code });
+            if (user) {
+                socket.emit('user:found', {
+                    id: user.socketId,
+                    name: user.name,
+                    avatar: user.avatar,
+                    online: user.online
+                });
+            } else {
+                socket.emit('user:notFound');
+            }
+        } catch (err) {
             socket.emit('user:notFound');
         }
     });
@@ -108,38 +198,52 @@ io.on('connection', (socket) => {
     });
     
     // Принятие запроса в друзья
-    socket.on('friend:accept', (fromId) => {
-        if (!friends.has(socket.id)) friends.set(socket.id, new Set());
-        if (!friends.has(fromId)) friends.set(fromId, new Set());
-        
-        friends.get(socket.id).add(fromId);
-        friends.get(fromId).add(socket.id);
-        
-        if (friendRequests.has(socket.id)) {
-            const requests = friendRequests.get(socket.id).filter(r => r.fromId !== fromId);
-            if (requests.length === 0) {
-                friendRequests.delete(socket.id);
-            } else {
-                friendRequests.set(socket.id, requests);
+    socket.on('friend:accept', async (fromId) => {
+        try {
+            if (!friends.has(socket.id)) friends.set(socket.id, new Set());
+            if (!friends.has(fromId)) friends.set(fromId, new Set());
+            
+            friends.get(socket.id).add(fromId);
+            friends.get(fromId).add(socket.id);
+            
+            if (friendRequests.has(socket.id)) {
+                const requests = friendRequests.get(socket.id).filter(r => r.fromId !== fromId);
+                if (requests.length === 0) {
+                    friendRequests.delete(socket.id);
+                } else {
+                    friendRequests.set(socket.id, requests);
+                }
             }
+            
+            const fromUser = users.get(fromId);
+            const toUser = users.get(socket.id);
+            
+            // Сохраняем в MongoDB
+            await User.findOneAndUpdate(
+                { socketId: socket.id },
+                { $addToSet: { friends: fromId } }
+            );
+            await User.findOneAndUpdate(
+                { socketId: fromId },
+                { $addToSet: { friends: socket.id } }
+            );
+            
+            io.to(fromId).emit('friend:accepted', {
+                id: socket.id,
+                name: toUser.name,
+                avatar: toUser.avatar,
+                online: true
+            });
+            
+            socket.emit('friend:accepted', {
+                id: fromId,
+                name: fromUser.name,
+                avatar: fromUser.avatar,
+                online: true
+            });
+        } catch (err) {
+            console.log('Ошибка принятия запроса:', err);
         }
-        
-        const fromUser = users.get(fromId);
-        const toUser = users.get(socket.id);
-        
-        io.to(fromId).emit('friend:accepted', {
-            id: socket.id,
-            name: toUser.name,
-            avatar: toUser.avatar,
-            online: true
-        });
-        
-        socket.emit('friend:accepted', {
-            id: fromId,
-            name: fromUser.name,
-            avatar: fromUser.avatar,
-            online: true
-        });
     });
     
     // Отклонение запроса
@@ -156,85 +260,116 @@ io.on('connection', (socket) => {
     });
     
     // Подключение к комнате
-    socket.on('room:join', (roomId, callback) => {
-        // Выходим из предыдущих комнат
-        socket.rooms.forEach(room => {
-            if (room !== socket.id) socket.leave(room);
-        });
-        
-        socket.join(roomId);
-        socket.data.currentRoom = roomId;
-        
-        // Добавляем пользователя в список комнаты
-        if (rooms[roomId]) {
-            rooms[roomId].users.add(socket.id);
-            const messages = rooms[roomId].messages || [];
-            callback({ 
-                messages: messages,
-                users: Array.from(rooms[roomId].users).map(id => ({
-                    id,
-                    name: users.get(id)?.name || 'Аноним',
-                    avatar: users.get(id)?.avatar || '👤'
-                }))
+    socket.on('room:join', async (roomId, callback) => {
+        try {
+            // Выходим из предыдущих комнат
+            socket.rooms.forEach(room => {
+                if (room !== socket.id) socket.leave(room);
             });
-        } else if (privateRooms.has(roomId)) {
-            const room = privateRooms.get(roomId);
-            room.users.add(socket.id);
-            callback({ 
-                messages: room.messages || [],
-                users: Array.from(room.users).map(id => ({
-                    id,
-                    name: users.get(id)?.name || 'Аноним',
-                    avatar: users.get(id)?.avatar || '👤'
-                }))
-            });
+            
+            socket.join(roomId);
+            socket.data.currentRoom = roomId;
+            
+            // Загружаем историю сообщений из MongoDB
+            const savedMessages = await Message.find({ roomId }).sort({ timestamp: -1 }).limit(50).lean();
+            
+            if (rooms[roomId]) {
+                rooms[roomId].users.add(socket.id);
+                callback({ 
+                    messages: savedMessages.reverse(),
+                    users: Array.from(rooms[roomId].users).map(id => ({
+                        id,
+                        name: users.get(id)?.name || 'Аноним',
+                        avatar: users.get(id)?.avatar || '👤'
+                    }))
+                });
+            } else if (privateRooms.has(roomId)) {
+                const room = privateRooms.get(roomId);
+                room.users.add(socket.id);
+                callback({ 
+                    messages: savedMessages.reverse(),
+                    users: Array.from(room.users).map(id => ({
+                        id,
+                        name: users.get(id)?.name || 'Аноним',
+                        avatar: users.get(id)?.avatar || '👤'
+                    }))
+                });
+            }
+            
+            const userName = users.get(socket.id)?.name || 'Аноним';
+            io.to(roomId).emit('user:joined', userName);
+            updateOnlineCount(roomId);
+            updateAllOnlineCounts();
+        } catch (err) {
+            console.log('Ошибка подключения к комнате:', err);
         }
-        
-        // Уведомляем всех в комнате
-        const userName = users.get(socket.id)?.name || 'Аноним';
-        io.to(roomId).emit('user:joined', userName);
-        updateOnlineCount(roomId);
-        
-        // Также обновляем онлайн счетчик для всех
-        updateAllOnlineCounts();
     });
     
     // Отправка сообщения
-    socket.on('message:send', (messageData) => {
-        const roomId = socket.data.currentRoom;
-        const user = users.get(socket.id);
-        
-        const message = {
-            author: user?.name || 'Аноним',
-            avatar: user?.avatar || '👤',
-            avatarBg: user?.avatarBackground || 'theme-default',
-            text: messageData.text,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            id: Date.now()
-        };
-        
-        if (rooms[roomId]) {
-            if (!rooms[roomId].messages) rooms[roomId].messages = [];
-            rooms[roomId].messages.push(message);
-        } else if (privateRooms.has(roomId)) {
-            const room = privateRooms.get(roomId);
-            if (!room.messages) room.messages = [];
-            room.messages.push(message);
+    socket.on('message:send', async (messageData) => {
+        try {
+            const roomId = socket.data.currentRoom;
+            const user = users.get(socket.id);
+            
+            const message = {
+                author: user?.name || 'Аноним',
+                authorId: socket.id,
+                avatar: user?.avatar || '👤',
+                avatarBg: user?.avatarBackground || 'theme-default',
+                text: messageData.text,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                roomId: roomId,
+                reactions: {}
+            };
+            
+            // Сохраняем в MongoDB
+            const newMessage = new Message(message);
+            await newMessage.save();
+            
+            // Добавляем ID
+            message.id = newMessage._id;
+            
+            // Сохраняем в памяти
+            if (rooms[roomId]) {
+                if (!rooms[roomId].messages) rooms[roomId].messages = [];
+                rooms[roomId].messages.push(message);
+            } else if (privateRooms.has(roomId)) {
+                const room = privateRooms.get(roomId);
+                if (!room.messages) room.messages = [];
+                room.messages.push(message);
+            }
+            
+            io.to(roomId).emit('message:new', message);
+        } catch (err) {
+            console.log('Ошибка отправки сообщения:', err);
         }
-        
-        io.to(roomId).emit('message:new', message);
     });
     
     // Создание приватной комнаты
-    socket.on('room:create', ({ name, password }) => {
-        const roomId = 'priv_' + Date.now();
-        privateRooms.set(roomId, {
-            name,
-            password,
-            users: new Set([socket.id]),
-            messages: []
-        });
-        socket.emit('room:created', { id: roomId, name });
+    socket.on('room:create', async ({ name, password }) => {
+        try {
+            const roomId = 'priv_' + Date.now();
+            privateRooms.set(roomId, {
+                name,
+                password,
+                users: new Set([socket.id]),
+                messages: []
+            });
+            
+            // Сохраняем в MongoDB
+            const newRoom = new PrivateRoom({
+                roomId,
+                name,
+                password,
+                createdBy: socket.id,
+                users: [socket.id]
+            });
+            await newRoom.save();
+            
+            socket.emit('room:created', { id: roomId, name });
+        } catch (err) {
+            console.log('Ошибка создания комнаты:', err);
+        }
     });
     
     // Подключение к приватной комнате
@@ -249,9 +384,17 @@ io.on('connection', (socket) => {
     });
     
     // Отключение пользователя
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
         console.log('Пользователь отключился:', socket.id);
         const user = users.get(socket.id);
+        
+        // Обновляем статус в MongoDB
+        if (user) {
+            await User.findOneAndUpdate(
+                { socketId: socket.id },
+                { online: false, lastSeen: new Date() }
+            );
+        }
         
         // Удаляем из всех комнат
         for (let roomId in rooms) {
@@ -274,7 +417,6 @@ io.on('connection', (socket) => {
             user.lastSeen = new Date();
         }
         
-        // Обновляем онлайн счетчики после отключения
         updateAllOnlineCounts();
     });
 });
