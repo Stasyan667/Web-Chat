@@ -11,56 +11,54 @@ const io = new Server(server, {
         methods: ["GET", "POST"],
         credentials: true
     },
-    transports: ['websocket', 'polling'] // Поддержка мобильных
+    transports: ['websocket', 'polling']
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
-// Главная страница
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Хранилище данных
-let users = new Map(); // socket.id -> user data
-let userCodes = new Map(); // friendCode -> user data
+let users = new Map();
+let userCodes = new Map();
 let rooms = {
     'main': { name: 'Общая', users: new Set(), messages: [] },
     'work': { name: 'Работа', users: new Set(), messages: [] },
     'games': { name: 'Игры', users: new Set(), messages: [] }
 };
 let privateRooms = new Map();
-let friendRequests = new Map(); // кому -> от кого
-let friends = new Map(); // userId -> Set друзей
+let friendRequests = new Map();
+let friends = new Map();
 
 io.on('connection', (socket) => {
     console.log('Пользователь подключился:', socket.id);
     
-    // Регистрация/вход пользователя
+    // Регистрация пользователя
     socket.on('user:register', (userData) => {
-        // Генерируем или сохраняем код друга
         if (!userData.friendCode) {
             userData.friendCode = 'USR' + Math.floor(Math.random() * 10000);
         }
         
-        // Сохраняем пользователя
         users.set(socket.id, {
             ...userData,
             online: true,
             lastSeen: new Date()
         });
         
-        // Сохраняем код для поиска
         userCodes.set(userData.friendCode, socket.id);
         
-        // Отправляем подтверждение
         socket.emit('user:registered', {
             friendCode: userData.friendCode,
             id: socket.id
         });
         
         console.log(`Пользователь ${userData.name} зарегистрирован с кодом ${userData.friendCode}`);
+        
+        // Обновляем онлайн счетчик во всех комнатах, где есть пользователь
+        updateAllOnlineCounts();
     });
     
     // Поиск пользователя по коду
@@ -89,7 +87,6 @@ io.on('connection', (socket) => {
         
         const fromUser = users.get(socket.id);
         
-        // Сохраняем запрос
         if (!friendRequests.has(toId)) {
             friendRequests.set(toId, []);
         }
@@ -100,7 +97,6 @@ io.on('connection', (socket) => {
             fromCode: fromUser.friendCode
         });
         
-        // Отправляем уведомление получателю
         io.to(toId).emit('friend:request', {
             fromId: socket.id,
             fromName: fromUser.name,
@@ -113,14 +109,12 @@ io.on('connection', (socket) => {
     
     // Принятие запроса в друзья
     socket.on('friend:accept', (fromId) => {
-        // Добавляем в друзья обоим
         if (!friends.has(socket.id)) friends.set(socket.id, new Set());
         if (!friends.has(fromId)) friends.set(fromId, new Set());
         
         friends.get(socket.id).add(fromId);
         friends.get(fromId).add(socket.id);
         
-        // Удаляем запрос
         if (friendRequests.has(socket.id)) {
             const requests = friendRequests.get(socket.id).filter(r => r.fromId !== fromId);
             if (requests.length === 0) {
@@ -130,7 +124,6 @@ io.on('connection', (socket) => {
             }
         }
         
-        // Уведомляем обоих
         const fromUser = users.get(fromId);
         const toUser = users.get(socket.id);
         
@@ -201,6 +194,9 @@ io.on('connection', (socket) => {
         const userName = users.get(socket.id)?.name || 'Аноним';
         io.to(roomId).emit('user:joined', userName);
         updateOnlineCount(roomId);
+        
+        // Также обновляем онлайн счетчик для всех
+        updateAllOnlineCounts();
     });
     
     // Отправка сообщения
@@ -217,7 +213,6 @@ io.on('connection', (socket) => {
             id: Date.now()
         };
         
-        // Сохраняем в историю
         if (rooms[roomId]) {
             if (!rooms[roomId].messages) rooms[roomId].messages = [];
             rooms[roomId].messages.push(message);
@@ -227,7 +222,6 @@ io.on('connection', (socket) => {
             room.messages.push(message);
         }
         
-        // Рассылаем всем в комнате
         io.to(roomId).emit('message:new', message);
     });
     
@@ -275,14 +269,17 @@ io.on('connection', (socket) => {
             }
         }
         
-        // Отмечаем как офлайн
         if (user) {
             user.online = false;
             user.lastSeen = new Date();
         }
+        
+        // Обновляем онлайн счетчики после отключения
+        updateAllOnlineCounts();
     });
 });
 
+// Функция обновления онлайн счетчика для конкретной комнаты
 function updateOnlineCount(roomId) {
     let count = 0;
     if (rooms[roomId]) {
@@ -291,6 +288,17 @@ function updateOnlineCount(roomId) {
         count = privateRooms.get(roomId).users.size;
     }
     io.to(roomId).emit('online:update', count);
+    console.log(`Комната ${roomId}: ${count} онлайн`);
+}
+
+// Функция обновления онлайн счетчиков для всех комнат
+function updateAllOnlineCounts() {
+    for (let roomId in rooms) {
+        updateOnlineCount(roomId);
+    }
+    for (let [roomId, room] of privateRooms) {
+        updateOnlineCount(roomId);
+    }
 }
 
 const PORT = process.env.PORT || 3000;
