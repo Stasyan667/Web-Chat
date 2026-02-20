@@ -5,10 +5,20 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+});
 
 // Отдаем статические файлы из папки public
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Главная страница - всегда отдаем index.html
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // Хранилище комнат и пользователей
 const rooms = {
@@ -144,10 +154,8 @@ function updateOnlineCount(roomId) {
     io.to(roomId).emit('online:update', count);
 }
 
-// ⚠️ ИЗМЕНЕНИЕ ЗДЕСЬ: добавляем process.env.PORT для Render
 const PORT = process.env.PORT || 3000;
 
-// ⚠️ ИЗМЕНЕНИЕ ЗДЕСЬ: добавляем '0.0.0.0' чтобы сервер слушал все интерфейсы
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`Сервер запущен на порту ${PORT}`);
 });
