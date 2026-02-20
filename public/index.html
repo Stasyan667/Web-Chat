@@ -1,0 +1,2538 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Web Chat / Полная версия</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            transition: background 0.5s ease;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            body { padding: 5px; }
+            .auth-container { padding: 20px; }
+            .chat-app { flex-direction: column; }
+            .sidebar { width: 100%; height: 50%; border-right: none; border-bottom: 1px solid rgba(230,233,240,0.5); }
+            .main-chat { height: 50%; }
+            .emoji-picker { grid-template-columns: repeat(6, 1fr); right: 10px; }
+        }
+
+        /* Страница входа */
+        .auth-container {
+            width: 100%;
+            max-width: 400px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            animation: fadeIn 0.5s;
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .auth-header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .auth-header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .auth-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+
+        .auth-tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #999;
+            transition: all 0.3s;
+        }
+
+        .auth-tab.active {
+            color: #667eea;
+            position: relative;
+        }
+
+        .auth-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -12px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: #667eea;
+            border-radius: 3px;
+        }
+
+        .auth-form {
+            display: none;
+        }
+
+        .auth-form.active {
+            display: block;
+        }
+
+        .auth-input {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 2px solid #eef2f6;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .auth-input:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .auth-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 15px;
+        }
+
+        .auth-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .auth-divider {
+            text-align: center;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .auth-divider::before,
+        .auth-divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 45%;
+            height: 1px;
+            background: #eef2f6;
+        }
+
+        .auth-divider::before {
+            left: 0;
+        }
+
+        .auth-divider::after {
+            right: 0;
+        }
+
+        .auth-divider span {
+            background: white;
+            padding: 0 10px;
+            color: #999;
+            font-size: 12px;
+        }
+
+        .auth-footer {
+            text-align: center;
+            color: #666;
+            font-size: 13px;
+            margin-top: 20px;
+        }
+
+        .auth-footer a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* Модальное окно с правилами */
+        .terms-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .terms-modal.show {
+            display: flex;
+        }
+
+        .terms-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            width: 100%;
+        }
+
+        .terms-content h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .terms-content h3 {
+            color: #667eea;
+            margin: 15px 0 10px;
+        }
+
+        .terms-content p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .terms-content ul {
+            color: #666;
+            margin-left: 20px;
+            line-height: 1.6;
+        }
+
+        .terms-close {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        /* Основное приложение */
+        .chat-app {
+            width: 100%;
+            max-width: 1400px;
+            height: 95vh;
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+            display: none;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .chat-app.show {
+            display: flex;
+        }
+
+        /* Темы */
+        body.theme-default { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        body.theme-dark { background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%); }
+        body.theme-space { background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%); }
+        body.theme-sunset { background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%); }
+        body.theme-forest { background: linear-gradient(135deg, #134e5e 0%, #71b280 100%); }
+        body.theme-ocean { background: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%); }
+        body.theme-candy { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        body.theme-aurora { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        body.theme-lavender { background: linear-gradient(135deg, #b993d6 0%, #8ca6db 100%); }
+        body.theme-peach { background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%); }
+        body.theme-mint { background: linear-gradient(135deg, #a8e6cf 0%, #d4edf5 100%); }
+        body.theme-coral { background: linear-gradient(135deg, #ff6f61 0%, #ff9a8b 100%); }
+        body.theme-twilight { background: linear-gradient(135deg, #a8c0ff 0%, #3f2b96 100%); }
+        body.theme-spring { background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%); }
+        body.theme-neon { background: linear-gradient(135deg, #12c2e9 0%, #c471ed 50%, #f64f59 100%); }
+        body.theme-berry { background: linear-gradient(135deg, #ee9ca7 0%, #ffdde1 100%); }
+
+        .sidebar {
+            width: 340px;
+            background: rgba(245, 247, 251, 0.9);
+            backdrop-filter: blur(5px);
+            border-right: 1px solid rgba(230, 233, 240, 0.5);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .profile-section {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border-bottom: 1px solid rgba(230, 233, 240, 0.5);
+        }
+
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 28px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+        .avatar:hover {
+            transform: scale(1.1);
+        }
+        .avatar.online::after {
+            content: '';
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 12px;
+            height: 12px;
+            background: #4caf50;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+
+        .profile-info h4 {
+            font-size: 16px;
+            color: #333;
+        }
+        .profile-info p {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .edit-profile-btn {
+            width: 100%;
+            padding: 8px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .edit-profile-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .profile-settings {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            display: none;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .profile-settings.show {
+            display: block;
+        }
+
+        .settings-group {
+            margin-bottom: 15px;
+        }
+        .settings-group label {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        .settings-group input, .settings-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #eef2f6;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .logout-settings-btn {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(45deg, #dc3545, #c82333);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+        .logout-settings-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(220, 53, 69, 0.3);
+        }
+
+        /* Эмодзи для аватарки - УЛУЧШЕНО */
+        .emoji-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border: 2px solid #eef2f6;
+        }
+        .emoji-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .emoji-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            justify-items: center;
+        }
+        .emoji-item {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            background: white;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+        }
+        .emoji-item:hover {
+            background: #667eea;
+            transform: scale(1.15);
+            box-shadow: 0 8px 15px rgba(102, 126, 234, 0.3);
+        }
+        .emoji-item.selected {
+            border-color: #667eea;
+            background: #e8f0fe;
+            transform: scale(1.1);
+        }
+
+        /* Фоны для аватарки */
+        .bg-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+        }
+        .bg-item {
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .bg-item:hover {
+            transform: scale(1.05);
+        }
+        .bg-item.selected {
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.3);
+        }
+        .bg-item.theme-default { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .bg-item.theme-dark { background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%); }
+        .bg-item.theme-space { background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%); }
+        .bg-item.theme-sunset { background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%); }
+        .bg-item.theme-forest { background: linear-gradient(135deg, #134e5e 0%, #71b280 100%); }
+        .bg-item.theme-ocean { background: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%); }
+        .bg-item.theme-candy { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .bg-item.theme-aurora { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .bg-item.theme-lavender { background: linear-gradient(135deg, #b993d6 0%, #8ca6db 100%); }
+        .bg-item.theme-peach { background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%); }
+        .bg-item.theme-mint { background: linear-gradient(135deg, #a8e6cf 0%, #d4edf5 100%); }
+        .bg-item.theme-coral { background: linear-gradient(135deg, #ff6f61 0%, #ff9a8b 100%); }
+        .bg-item.theme-twilight { background: linear-gradient(135deg, #a8c0ff 0%, #3f2b96 100%); }
+        .bg-item.theme-spring { background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%); }
+        .bg-item.theme-neon { background: linear-gradient(135deg, #12c2e9 0%, #c471ed 50%, #f64f59 100%); }
+        .bg-item.theme-berry { background: linear-gradient(135deg, #ee9ca7 0%, #ffdde1 100%); }
+
+        .translate-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 10px 0;
+            padding: 8px;
+            background: #f0f3f8;
+            border-radius: 8px;
+        }
+
+        .save-settings {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .save-settings:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+        }
+
+        .tabs {
+            display: flex;
+            padding: 10px 15px 0;
+            gap: 8px;
+            border-bottom: 1px solid rgba(230, 233, 240, 0.5);
+        }
+        .tab {
+            padding: 8px 16px;
+            cursor: pointer;
+            border-radius: 8px 8px 0 0;
+            font-weight: 600;
+            font-size: 14px;
+            color: #666;
+            transition: all 0.3s;
+            position: relative;
+        }
+        .tab:hover {
+            background: #e8ebf2;
+        }
+        .tab.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        .tab .unread-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #dc3545;
+            color: white;
+            font-size: 10px;
+            padding: 2px 5px;
+            border-radius: 10px;
+            min-width: 18px;
+            text-align: center;
+        }
+
+        .tab-content {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .rooms-list {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .room-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            color: #4a4a6a;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            background: white;
+            border: 1px solid rgba(230, 233, 240, 0.5);
+            position: relative;
+        }
+        .room-item:hover {
+            background: #e8ebf2;
+            transform: translateX(5px);
+        }
+        .room-item.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        .room-item.active .delete-room-btn {
+            color: white;
+        }
+        .room-item .unread-badge {
+            position: absolute;
+            top: -5px;
+            right: 30px;
+            background: #dc3545;
+            color: white;
+            font-size: 10px;
+            padding: 2px 5px;
+            border-radius: 10px;
+        }
+
+        .room-users {
+            font-size: 11px;
+            color: #28a745;
+            margin-left: auto;
+            margin-right: 5px;
+        }
+        .room-item.active .room-users {
+            color: white;
+        }
+
+        .room-settings-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            margin-right: 5px;
+        }
+        .room-settings-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: scale(1.1);
+        }
+        .room-item.active .room-settings-btn {
+            color: white;
+        }
+
+        .delete-room-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .delete-room-btn:hover {
+            background: #dc3545;
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .country-server {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            border-radius: 14px;
+            margin-bottom: 10px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .country-server:hover {
+            border-color: #667eea;
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+        }
+        .country-flag {
+            font-size: 40px;
+            min-width: 50px;
+            text-align: center;
+        }
+        .country-info {
+            flex: 1;
+        }
+        .country-name {
+            font-weight: 700;
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+        .country-online {
+            font-size: 13px;
+            color: #28a745;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .friends-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        .friends-title {
+            font-size: 12px;
+            color: #aaa;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .add-friend-btn {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .add-friend-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+        }
+
+        .friend-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 14px;
+            margin-bottom: 8px;
+            background: white;
+            border: 1px solid rgba(230, 233, 240, 0.5);
+            transition: all 0.3s;
+            position: relative;
+        }
+        .friend-item:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .friend-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            position: relative;
+        }
+        .friend-avatar.online::after {
+            content: '';
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 10px;
+            height: 10px;
+            background: #4caf50;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+        .friend-info {
+            flex: 1;
+        }
+        .friend-name {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 4px;
+        }
+        .friend-status {
+            font-size: 12px;
+            color: #28a745;
+        }
+        .friend-status.offline {
+            color: #999;
+        }
+        .friend-actions {
+            display: flex;
+            gap: 5px;
+        }
+        .friend-action-btn {
+            width: 30px;
+            height: 30px;
+            border: none;
+            border-radius: 50%;
+            background: #f0f3f8;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        .friend-action-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: scale(1.1);
+        }
+        .friend-action-btn.delete:hover {
+            background: #dc3545;
+        }
+        .friend-action-btn.ban:hover {
+            background: #ff6b6b;
+        }
+        .friend-action-btn.message:hover {
+            background: #28a745;
+        }
+        .friend-typing {
+            font-size: 11px;
+            color: #667eea;
+            font-style: italic;
+            margin-top: 2px;
+        }
+
+        .friend-request {
+            background: #fff3cd;
+            padding: 12px;
+            border-radius: 14px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideIn 0.3s;
+        }
+        .request-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        .accept-btn, .decline-btn {
+            padding: 5px 12px;
+            border: none;
+            border-radius: 15px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .accept-btn {
+            background: #28a745;
+            color: white;
+        }
+        .accept-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 3px 10px rgba(40, 167, 69, 0.3);
+        }
+        .decline-btn {
+            background: #dc3545;
+            color: white;
+        }
+        .decline-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 3px 10px rgba(220, 53, 69, 0.3);
+        }
+
+        .private-room-btn {
+            margin-top: 20px;
+            padding: 12px;
+            background: linear-gradient(135deg, #6c5ce7, #a463f5);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .private-room-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(108, 92, 231, 0.3);
+        }
+
+        .main-chat {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            padding: 15px 25px;
+            border-bottom: 1px solid rgba(240, 240, 240, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: white;
+        }
+
+        .room-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .room-info h2 {
+            font-size: 20px;
+            color: #333;
+        }
+        .room-info p {
+            font-size: 13px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .room-info-settings {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #f0f3f8;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        .room-info-settings:hover {
+            background: #667eea;
+            color: white;
+            transform: rotate(90deg);
+        }
+
+        .online-counter {
+            background: #e8f5e9;
+            padding: 8px 20px;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: #2e7d32;
+            cursor: pointer;
+            margin-right: 50px;
+            transition: all 0.3s;
+        }
+        .online-counter:hover {
+            background: #c8e6c9;
+            transform: translateY(-2px);
+        }
+
+        .users-popup {
+            display: none;
+            position: absolute;
+            top: 70px;
+            right: 80px;
+            width: 280px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            z-index: 1000;
+            animation: fadeIn 0.3s;
+        }
+        .users-popup.show {
+            display: block;
+        }
+        .users-popup-header {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .users-list {
+            max-height: 350px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        .popup-user-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 5px;
+            background: #f8f9fa;
+        }
+        .popup-user-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        .popup-user-info {
+            flex: 1;
+        }
+        .popup-user-name {
+            font-weight: 600;
+            font-size: 13px;
+        }
+        .popup-user-status {
+            font-size: 11px;
+            color: #28a745;
+        }
+        .popup-user-status.offline {
+            color: #999;
+        }
+
+        .messages-area {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #fafafa;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .message {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            max-width: 70%;
+            animation: fadeIn 0.3s;
+            position: relative;
+        }
+        .message.own {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s;
+        }
+        .message-avatar.online::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 10px;
+            height: 10px;
+            background: #4caf50;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+        .message-content {
+            background: white;
+            padding: 12px 16px;
+            border-radius: 18px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .message.own .message-content {
+            background: #dcf8c6;
+        }
+        .message-author {
+            font-weight: 600;
+            color: #6c5ce7;
+            font-size: 13px;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .message-text {
+            word-break: break-word;
+        }
+        .message-translated {
+            font-size: 11px;
+            color: #999;
+            margin-top: 4px;
+            font-style: italic;
+        }
+        .message-reactions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        .reaction-btn {
+            background: #f0f3f8;
+            border: none;
+            border-radius: 20px;
+            padding: 4px 10px;
+            font-size: 13px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+        .reaction-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: scale(1.05);
+        }
+        .reaction-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #764ba2;
+        }
+        .reaction-count {
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .pinned-message {
+            background: #fff3cd;
+            padding: 8px 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+        }
+        .typing-indicator {
+            font-size: 12px;
+            color: #667eea;
+            font-style: italic;
+            margin: 5px 0;
+            padding-left: 20px;
+        }
+
+        .message-input-area {
+            padding: 15px 25px;
+            display: flex;
+            gap: 12px;
+            background: white;
+            border-top: 1px solid rgba(240, 240, 240, 0.8);
+            align-items: center;
+        }
+        .emoji-picker-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 50%;
+            background: #f0f3f8;
+            color: #666;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .emoji-picker-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: scale(1.1);
+        }
+        .message-input-area input {
+            flex: 1;
+            padding: 12px 18px;
+            border: 2px solid #eef2f6;
+            border-radius: 30px;
+            outline: none;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .message-input-area input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .message-input-area button {
+            width: 50px;
+            height: 50px;
+            border: none;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6c5ce7, #a463f5);
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .message-input-area button:hover {
+            transform: scale(1.1) rotate(90deg);
+        }
+
+        /* Эмодзи для сообщений */
+        .emoji-picker {
+            position: absolute;
+            bottom: 80px;
+            right: 20px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            padding: 15px;
+            display: none;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 5px;
+            z-index: 2000;
+            max-width: 350px;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        .emoji-picker.show {
+            display: grid;
+        }
+        .emoji-picker span {
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .emoji-picker span:hover {
+            background: #667eea;
+            transform: scale(1.1);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+        .modal.show {
+            display: flex;
+            animation: fadeIn 0.3s;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 25px;
+            padding: 30px;
+            width: 90%;
+            max-width: 400px;
+            animation: slideUp 0.3s;
+        }
+        .friend-code {
+            background: #f0f3f8;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            margin: 15px 0;
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            word-break: break-all;
+        }
+        .cooldown-timer {
+            font-size: 12px;
+            color: #dc3545;
+            margin-top: 5px;
+            text-align: center;
+        }
+        .room-info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+        .friend-code-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+        .status-error {
+            color: #dc3545;
+            margin: 10px 0;
+            text-align: center;
+        }
+        .status-success {
+            color: #28a745;
+            margin: 10px 0;
+            text-align: center;
+        }
+
+        .private-chat {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 300px;
+            height: 400px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: none;
+            flex-direction: column;
+            z-index: 3000;
+            animation: slideUp 0.3s;
+        }
+        .private-chat.show {
+            display: flex;
+        }
+        .private-chat-header {
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 20px 20px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .private-chat-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background: #fafafa;
+        }
+        .private-chat-input {
+            padding: 15px;
+            display: flex;
+            gap: 10px;
+            border-top: 1px solid #eee;
+        }
+        .private-chat-input input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 2px solid #eef2f6;
+            border-radius: 20px;
+            outline: none;
+        }
+        .private-chat-input button {
+            padding: 8px 15px;
+            background: linear-gradient(135deg, #6c5ce7, #a463f5);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+        .close-chat {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="theme-default">
+    <!-- Модальное окно с правилами -->
+    <div class="terms-modal" id="termsModal">
+        <div class="terms-content">
+            <h2>Правила использования Web Chat</h2>
+            <h3>1. Уважение к другим</h3>
+            <p>Запрещены любые формы дискриминации, расизма, сексизма, гомофобии.</p>
+            <h3>2. Запрещенный контент</h3>
+            <p>Порнография, насилие, экстремизм, оскорбления, спам.</p>
+            <h3>3. Наказания</h3>
+            <ul>
+                <li>1 нарушение: Предупреждение</li>
+                <li>2 нарушение: Блокировка 7 дней</li>
+                <li>3 нарушение: ПОЖИЗНЕННАЯ БЛОКИРОВКА</li>
+            </ul>
+            <h3>4. Расизм и дискриминация</h3>
+            <p>Любые проявления расизма - ПОЖИЗНЕННАЯ БЛОКИРОВКА.</p>
+            <button class="terms-close" onclick="closeTerms()">Принимаю</button>
+        </div>
+    </div>
+
+    <!-- Страница входа -->
+    <div class="auth-container" id="authContainer">
+        <div class="auth-header">
+            <h1>Web Chat</h1>
+            <p>Войдите чтобы продолжить</p>
+        </div>
+        <div class="auth-tabs">
+            <div class="auth-tab active" onclick="switchAuthTab('login')">Вход</div>
+            <div class="auth-tab" onclick="switchAuthTab('register')">Регистрация</div>
+        </div>
+        <div class="auth-form active" id="loginForm">
+            <input type="text" class="auth-input" id="loginUsername" placeholder="Имя">
+            <input type="password" class="auth-input" id="loginPassword" placeholder="Пароль">
+            <button class="auth-btn" onclick="login()">Войти</button>
+            <div class="auth-divider"><span>ИЛИ</span></div>
+            <button class="auth-btn" onclick="quickLogin()">Быстрый вход</button>
+        </div>
+        <div class="auth-form" id="registerForm">
+            <input type="text" class="auth-input" id="registerUsername" placeholder="Имя">
+            <input type="email" class="auth-input" id="registerEmail" placeholder="Email">
+            <input type="password" class="auth-input" id="registerPassword" placeholder="Пароль">
+            <input type="password" class="auth-input" id="registerConfirmPassword" placeholder="Подтвердите">
+            <button class="auth-btn" onclick="register()">Регистрация</button>
+        </div>
+        <div class="auth-footer">
+            Нажимая кнопку, вы соглашаетесь с <a href="#" onclick="showTerms()">условиями</a>
+        </div>
+    </div>
+
+    <!-- Основной чат -->
+    <div class="chat-app" id="chatApp">
+        <div class="sidebar">
+            <div class="profile-section">
+                <div class="profile-header">
+                    <div class="avatar online" id="avatar" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">😊</div>
+                    <div class="profile-info">
+                        <h4 id="displayName">Аноним</h4>
+                        <p id="displayCountry">🌍 Россия</p>
+                    </div>
+                </div>
+                <button class="edit-profile-btn" onclick="toggleSettings()">✏️ Редактировать</button>
+                <div class="profile-settings" id="profileSettings">
+                    <!-- ЭМОДЗИ ТЕПЕРЬ ТОЧНО ВИДНЫ -->
+                    <div class="emoji-section">
+                        <div class="emoji-title">Выберите аватар</div>
+                        <div class="emoji-grid" id="emojiGrid"></div>
+                    </div>
+                    
+                    <div class="settings-group">
+                        <label>Имя</label>
+                        <input type="text" id="inputName" value="Аноним">
+                    </div>
+                    <div class="settings-group">
+                        <label>Страна</label>
+                        <select id="inputCountry">
+                            <option value="Австралия">🇦🇺 Австралия</option>
+                            <option value="Австрия">🇦🇹 Австрия</option>
+                            <option value="Азербайджан">🇦🇿 Азербайджан</option>
+                            <option value="Аргентина">🇦🇷 Аргентина</option>
+                            <option value="Беларусь">🇧🇾 Беларусь</option>
+                            <option value="Бельгия">🇧🇪 Бельгия</option>
+                            <option value="Болгария">🇧🇬 Болгария</option>
+                            <option value="Бразилия">🇧🇷 Бразилия</option>
+                            <option value="Великобритания">🇬🇧 Великобритания</option>
+                            <option value="Венгрия">🇭🇺 Венгрия</option>
+                            <option value="Германия">🇩🇪 Германия</option>
+                            <option value="Греция">🇬🇷 Греция</option>
+                            <option value="Грузия">🇬🇪 Грузия</option>
+                            <option value="Дания">🇩🇰 Дания</option>
+                            <option value="Египет">🇪🇬 Египет</option>
+                            <option value="Израиль">🇮🇱 Израиль</option>
+                            <option value="Индия">🇮🇳 Индия</option>
+                            <option value="Испания">🇪🇸 Испания</option>
+                            <option value="Италия">🇮🇹 Италия</option>
+                            <option value="Казахстан">🇰🇿 Казахстан</option>
+                            <option value="Канада">🇨🇦 Канада</option>
+                            <option value="Китай">🇨🇳 Китай</option>
+                            <option value="Корея">🇰🇷 Корея</option>
+                            <option value="Латвия">🇱🇻 Латвия</option>
+                            <option value="Литва">🇱🇹 Литва</option>
+                            <option value="Мексика">🇲🇽 Мексика</option>
+                            <option value="Молдова">🇲🇩 Молдова</option>
+                            <option value="Нидерланды">🇳🇱 Нидерланды</option>
+                            <option value="Норвегия">🇳🇴 Норвегия</option>
+                            <option value="ОАЭ">🇦🇪 ОАЭ</option>
+                            <option value="Польша">🇵🇱 Польша</option>
+                            <option value="Португалия">🇵🇹 Португалия</option>
+                            <option value="Россия" selected>🇷🇺 Россия</option>
+                            <option value="Румыния">🇷🇴 Румыния</option>
+                            <option value="Сербия">🇷🇸 Сербия</option>
+                            <option value="Сингапур">🇸🇬 Сингапур</option>
+                            <option value="Словакия">🇸🇰 Словакия</option>
+                            <option value="Словения">🇸🇮 Словения</option>
+                            <option value="США">🇺🇸 США</option>
+                            <option value="Таиланд">🇹🇭 Таиланд</option>
+                            <option value="Турция">🇹🇷 Турция</option>
+                            <option value="Узбекистан">🇺🇿 Узбекистан</option>
+                            <option value="Украина">🇺🇦 Украина</option>
+                            <option value="Финляндия">🇫🇮 Финляндия</option>
+                            <option value="Франция">🇫🇷 Франция</option>
+                            <option value="Хорватия">🇭🇷 Хорватия</option>
+                            <option value="Чехия">🇨🇿 Чехия</option>
+                            <option value="Швейцария">🇨🇭 Швейцария</option>
+                            <option value="Швеция">🇸🇪 Швеция</option>
+                            <option value="Эстония">🇪🇪 Эстония</option>
+                            <option value="ЮАР">🇿🇦 ЮАР</option>
+                            <option value="Япония">🇯🇵 Япония</option>
+                        </select>
+                    </div>
+                    <div class="settings-group">
+                        <label>Фон аватарки</label>
+                        <div class="bg-grid" id="avatarBgGrid">
+                            <div class="bg-item theme-default" onclick="selectAvatarBackground('theme-default', this)"></div>
+                            <div class="bg-item theme-dark" onclick="selectAvatarBackground('theme-dark', this)"></div>
+                            <div class="bg-item theme-space" onclick="selectAvatarBackground('theme-space', this)"></div>
+                            <div class="bg-item theme-sunset" onclick="selectAvatarBackground('theme-sunset', this)"></div>
+                            <div class="bg-item theme-forest" onclick="selectAvatarBackground('theme-forest', this)"></div>
+                            <div class="bg-item theme-ocean" onclick="selectAvatarBackground('theme-ocean', this)"></div>
+                            <div class="bg-item theme-candy" onclick="selectAvatarBackground('theme-candy', this)"></div>
+                            <div class="bg-item theme-aurora" onclick="selectAvatarBackground('theme-aurora', this)"></div>
+                            <div class="bg-item theme-lavender" onclick="selectAvatarBackground('theme-lavender', this)"></div>
+                            <div class="bg-item theme-peach" onclick="selectAvatarBackground('theme-peach', this)"></div>
+                            <div class="bg-item theme-mint" onclick="selectAvatarBackground('theme-mint', this)"></div>
+                            <div class="bg-item theme-coral" onclick="selectAvatarBackground('theme-coral', this)"></div>
+                            <div class="bg-item theme-twilight" onclick="selectAvatarBackground('theme-twilight', this)"></div>
+                            <div class="bg-item theme-spring" onclick="selectAvatarBackground('theme-spring', this)"></div>
+                            <div class="bg-item theme-neon" onclick="selectAvatarBackground('theme-neon', this)"></div>
+                            <div class="bg-item theme-berry" onclick="selectAvatarBackground('theme-berry', this)"></div>
+                        </div>
+                    </div>
+                    <button class="save-settings" onclick="saveProfile()">Сохранить</button>
+                    <button class="logout-settings-btn" onclick="logout()">🚪 Выйти</button>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('rooms', this)">💬 Комнаты</div>
+                <div class="tab" onclick="switchTab('countries', this)">🌍 Страны</div>
+                <div class="tab" onclick="switchTab('friends', this)">👥 Друзья</div>
+            </div>
+
+            <div id="roomsTab" class="tab-content">
+                <div class="rooms-list">
+                    <div class="room-item active" onclick="switchRoom('main', this)">
+                        <span>💬</span> 
+                        <span id="mainRoomName">Общая</span>
+                        <span class="room-users" id="mainRoomUsers">(👥 0)</span>
+                    </div>
+                    <div class="room-item" onclick="switchRoom('work', this)">
+                        <span>💼</span> 
+                        <span id="workRoomName">Работа</span>
+                        <span class="room-users" id="workRoomUsers">(👥 0)</span>
+                    </div>
+                    <div class="room-item" onclick="switchRoom('games', this)">
+                        <span>🎮</span> 
+                        <span id="gamesRoomName">Игры</span>
+                        <span class="room-users" id="gamesRoomUsers">(👥 0)</span>
+                    </div>
+                </div>
+                <div style="margin: 20px 0; border-top: 1px solid #ddd;"></div>
+                <div class="rooms-title">ПРИВАТНЫЕ</div>
+                <div id="privateRoomsList"></div>
+                <button class="private-room-btn" onclick="openPrivateModal()">🔒 + Создать</button>
+            </div>
+
+            <div id="countriesTab" class="tab-content" style="display: none;">
+                <div class="country-server" onclick="switchCountry('usa')">
+                    <span class="country-flag">🇺🇸</span>
+                    <div class="country-info">
+                        <div class="country-name">США</div>
+                        <div class="country-online"><span>👥 0</span> онлайн</div>
+                    </div>
+                </div>
+                <div class="country-server" onclick="switchCountry('uk')">
+                    <span class="country-flag">🇬🇧</span>
+                    <div class="country-info">
+                        <div class="country-name">Великобритания</div>
+                        <div class="country-online"><span>👥 0</span> онлайн</div>
+                    </div>
+                </div>
+                <div class="country-server" onclick="switchCountry('germany')">
+                    <span class="country-flag">🇩🇪</span>
+                    <div class="country-info">
+                        <div class="country-name">Германия</div>
+                        <div class="country-online"><span>👥 0</span> онлайн</div>
+                    </div>
+                </div>
+                <div class="country-server" onclick="switchCountry('france')">
+                    <span class="country-flag">🇫🇷</span>
+                    <div class="country-info">
+                        <div class="country-name">Франция</div>
+                        <div class="country-online"><span>👥 0</span> онлайн</div>
+                    </div>
+                </div>
+                <div class="country-server" onclick="switchCountry('spain')">
+                    <span class="country-flag">🇪🇸</span>
+                    <div class="country-info">
+                        <div class="country-name">Испания</div>
+                        <div class="country-online"><span>👥 0</span> онлайн</div>
+                    </div>
+                </div>
+                <div class="country-server" onclick="switchCountry('italy')">
+                    <span class="country-flag">🇮🇹</span>
+                    <div class="country-info">
+                        <div class="country-name">Италия</div>
+                        <div class="country-online"><span>👥 0</span> онлайн</div>
+                    </div>
+                </div>
+                <div class="country-server" onclick="switchCountry('china')">
+                    <span class="country-flag">🇨🇳</span>
+                    <div class="country-info">
+                        <div class="country-name">Китай</div>
+                        <div class="country-online"><span>👥 0</span> онлайн</div>
+                    </div>
+                </div>
+                <div class="country-server" onclick="switchCountry('japan')">
+                    <span class="country-flag">🇯🇵</span>
+                    <div class="country-info">
+                        <div class="country-name">Япония</div>
+                        <div class="country-online"><span>👥 0</span> онлайн</div>
+                    </div>
+                </div>
+                <div class="country-server" onclick="switchCountry('korea')">
+                    <span class="country-flag">🇰🇷</span>
+                    <div class="country-info">
+                        <div class="country-name">Корея</div>
+                        <div class="country-online"><span>👥 0</span> онлайн</div>
+                    </div>
+                </div>
+                <div class="country-server" onclick="switchCountry('brazil')">
+                    <span class="country-flag">🇧🇷</span>
+                    <div class="country-info">
+                        <div class="country-name">Бразилия</div>
+                        <div class="country-online"><span>👥 0</span> онлайн</div>
+                    </div>
+                </div>
+                <div class="country-server" onclick="switchCountry('canada')">
+                    <span class="country-flag">🇨🇦</span>
+                    <div class="country-info">
+                        <div class="country-name">Канада</div>
+                        <div class="country-online"><span>👥 0</span> онлайн</div>
+                    </div>
+                </div>
+                <div class="country-server" onclick="switchCountry('australia')">
+                    <span class="country-flag">🇦🇺</span>
+                    <div class="country-info">
+                        <div class="country-name">Австралия</div>
+                        <div class="country-online"><span>👥 0</span> онлайн</div>
+                    </div>
+                </div>
+                <div class="country-server" onclick="switchCountry('india')">
+                    <span class="country-flag">🇮🇳</span>
+                    <div class="country-info">
+                        <div class="country-name">Индия</div>
+                        <div class="country-online"><span>👥 0</span> онлайн</div>
+                    </div>
+                </div>
+                <div class="country-server" onclick="switchCountry('russia')">
+                    <span class="country-flag">🇷🇺</span>
+                    <div class="country-info">
+                        <div class="country-name">Россия</div>
+                        <div class="country-online"><span>👥 0</span> онлайн</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="friendsTab" class="tab-content" style="display: none;">
+                <div id="friendRequests"></div>
+                <div class="friends-header">
+                    <span class="friends-title">ДРУЗЬЯ</span>
+                    <button class="add-friend-btn" onclick="openAddFriendModal()">+ Добавить</button>
+                </div>
+                <div id="friendsList"></div>
+                <div id="blacklist" style="margin-top: 20px;"></div>
+            </div>
+        </div>
+
+        <div class="main-chat">
+            <div class="chat-header">
+                <div class="room-info">
+                    <h2 id="currentRoomName">💬 Общая</h2>
+                    <button class="room-info-settings" onclick="openRoomSettings()">⚙️</button>
+                </div>
+                <div class="online-counter" onclick="toggleUsersPopup()">
+                    <span>👥</span> <span id="onlineCount">0</span> онлайн
+                </div>
+                <div class="users-popup" id="usersPopup">
+                    <div class="users-popup-header">Участники</div>
+                    <div class="users-list" id="usersList"></div>
+                </div>
+            </div>
+
+            <div id="pinnedMessage" class="pinned-message" style="display: none;">📌 <span id="pinnedText"></span></div>
+
+            <div class="messages-area" id="messagesArea"></div>
+
+            <div class="message-input-area">
+                <button class="emoji-picker-btn" onclick="toggleEmojiPicker()">😊</button>
+                <input type="text" id="messageInput" placeholder="Сообщение..." onkeypress="if(event.key==='Enter') sendMessage()">
+                <button onclick="sendMessage()">➤</button>
+            </div>
+            
+            <div class="emoji-picker" id="emojiPicker">
+                <span onclick="addEmoji('😊')">😊</span>
+                <span onclick="addEmoji('😂')">😂</span>
+                <span onclick="addEmoji('❤️')">❤️</span>
+                <span onclick="addEmoji('👍')">👍</span>
+                <span onclick="addEmoji('🎉')">🎉</span>
+                <span onclick="addEmoji('🔥')">🔥</span>
+                <span onclick="addEmoji('😎')">😎</span>
+                <span onclick="addEmoji('🥳')">🥳</span>
+                <span onclick="addEmoji('😍')">😍</span>
+                <span onclick="addEmoji('🤔')">🤔</span>
+                <span onclick="addEmoji('👏')">👏</span>
+                <span onclick="addEmoji('🙏')">🙏</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальные окна -->
+    <div class="modal" id="privateModal">
+        <div class="modal-content">
+            <h3 id="modalTitle">Создать комнату</h3>
+            <input type="text" id="roomNameInput" placeholder="Название">
+            <input type="text" id="roomPasswordInput" placeholder="Пароль">
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                <button class="btn-secondary" onclick="closePrivateModal()">Отмена</button>
+                <button class="btn-primary" id="modalActionBtn" onclick="createPrivateRoom()">Создать</button>
+            </div>
+            <p style="margin-top:15px; text-align:center;">
+                <a href="#" onclick="switchToJoinMode()">Уже есть комната? Присоединиться</a>
+            </p>
+        </div>
+    </div>
+
+    <div class="modal" id="roomSettingsModal">
+        <div class="modal-content">
+            <h3>Настройки комнаты</h3>
+            <div id="roomInfo"></div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                <button class="btn-secondary" onclick="closeRoomSettings()">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="addFriendModal">
+        <div class="modal-content">
+            <h3>Добавить друга</h3>
+            <div class="friend-code-label">Ваш код:</div>
+            <div class="friend-code" id="userFriendCode">ABC123</div>
+            <input type="text" id="friendCodeInput" placeholder="Код друга" oninput="this.value = this.value.toUpperCase()" style="text-transform: uppercase;">
+            <div id="friendRequestStatus" class="status-error"></div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                <button class="btn-secondary" onclick="closeAddFriendModal()">Закрыть</button>
+                <button class="btn-primary" onclick="sendFriendRequest()">Отправить</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="private-chat" id="privateChat">
+        <div class="private-chat-header">
+            <span id="privateChatName">Чат с другом</span>
+            <button class="close-chat" onclick="closePrivateChat()">×</button>
+        </div>
+        <div class="private-chat-messages" id="privateChatMessages"></div>
+        <div class="private-chat-input">
+            <input type="text" id="privateChatInput" placeholder="Сообщение..." onkeypress="if(event.key==='Enter') sendPrivateMessage()">
+            <button onclick="sendPrivateMessage()">→</button>
+        </div>
+    </div>
+
+    <script>
+        // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
+        let users = JSON.parse(localStorage.getItem('users')) || [];
+        let currentUser = null;
+        let currentRoom = 'main';
+        let rooms = {
+            main: { name: 'Общая', type: 'public', password: null, users: [], messages: [], unread: 0 },
+            work: { name: 'Работа', type: 'public', password: null, users: [], messages: [], unread: 0 },
+            games: { name: 'Игры', type: 'public', password: null, users: [], messages: [], unread: 0 }
+        };
+        let privateRooms = {};
+        let friends = [];
+        let blacklist = [];
+        let friendRequests = [];
+        let sentRequests = [];
+        let lastRequestTime = 0;
+        const COOLDOWN_TIME = 60000;
+        let messageReactions = {};
+        let pinnedMessages = {};
+
+        // Определяем язык браузера
+        function getBrowserLanguage() {
+            let lang = navigator.language || navigator.userLanguage;
+            lang = lang.split('-')[0];
+            const supportedLangs = ['ru', 'en', 'es', 'zh', 'ja', 'ko', 'de', 'fr'];
+            return supportedLangs.includes(lang) ? lang : 'en';
+        }
+
+        // Переводы для всех языков
+        const translations = {
+            ru: {
+                mainRoom: 'Общая', workRoom: 'Работа', gamesRoom: 'Игры',
+                online: 'онлайн', system: 'Система', welcome: 'Добро пожаловать!',
+                noFriends: 'У вас пока нет друзей', userNotFound: 'Пользователь не найден',
+                requestSent: 'Запрос отправлен!', blacklist: 'ЧЕРНЫЙ СПИСОК',
+                accept: 'Принять', decline: 'Отклонить', delete: 'Удалить',
+                ban: 'В ЧС', message: 'Сообщение', unban: 'Разблокировать',
+                yourCode: 'Ваш код:', enterCode: 'Введите код друга',
+                close: 'Закрыть', send: 'Отправить', create: 'Создать',
+                join: 'Присоединиться', cancel: 'Отмена', save: 'Сохранить',
+                logout: '🚪 Выйти', edit: '✏️ Редактировать',
+                emptyCode: 'Введите код друга', selfCode: 'Нельзя добавить себя',
+                alreadySent: 'Запрос уже отправлен', roomCreated: 'Комната создана!',
+                roomJoined: 'Вы присоединились!', roomNotFound: 'Комната не найдена',
+                confirmDelete: 'Удалить комнату?', roomDeleted: 'Комната удалена',
+                participants: 'Участники', password: 'Пароль', name: 'Название'
+            },
+            en: {
+                mainRoom: 'General', workRoom: 'Work', gamesRoom: 'Games',
+                online: 'online', system: 'System', welcome: 'Welcome!',
+                noFriends: 'You have no friends yet', userNotFound: 'User not found',
+                requestSent: 'Request sent!', blacklist: 'BLACKLIST',
+                accept: 'Accept', decline: 'Decline', delete: 'Delete',
+                ban: 'Block', message: 'Message', unban: 'Unblock',
+                yourCode: 'Your code:', enterCode: 'Enter friend code',
+                close: 'Close', send: 'Send', create: 'Create',
+                join: 'Join', cancel: 'Cancel', save: 'Save',
+                logout: '🚪 Log out', edit: '✏️ Edit',
+                emptyCode: 'Enter friend code', selfCode: 'Cannot add yourself',
+                alreadySent: 'Request already sent', roomCreated: 'Room created!',
+                roomJoined: 'You joined!', roomNotFound: 'Room not found',
+                confirmDelete: 'Delete room?', roomDeleted: 'Room deleted',
+                participants: 'Participants', password: 'Password', name: 'Name'
+            }
+        };
+
+        // Текущий язык (определяем по браузеру)
+        let currentLanguage = getBrowserLanguage();
+
+        // Загружаем сессию
+        let savedSession = JSON.parse(localStorage.getItem('currentSession'));
+        if (savedSession) {
+            currentUser = savedSession;
+            showChat();
+        }
+
+        // ========== ПРАВИЛА ==========
+        function showTerms() { document.getElementById('termsModal').classList.add('show'); }
+        function closeTerms() { document.getElementById('termsModal').classList.remove('show'); }
+
+        // ========== АВТОРИЗАЦИЯ ==========
+        function switchAuthTab(tab) {
+            document.querySelectorAll('.auth-tab').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.auth-form').forEach(el => el.classList.remove('active'));
+            if (tab === 'login') {
+                document.querySelector('.auth-tab').classList.add('active');
+                document.getElementById('loginForm').classList.add('active');
+            } else {
+                document.querySelectorAll('.auth-tab')[1].classList.add('active');
+                document.getElementById('registerForm').classList.add('active');
+            }
+        }
+
+        function quickLogin() {
+            let testUser = {
+                id: Date.now(),
+                username: 'Тестовый',
+                name: 'Тестовый',
+                country: 'Россия',
+                avatar: '😊',
+                avatarBackground: 'theme-default',
+                friendCode: 'TEST' + Math.floor(Math.random() * 1000)
+            };
+            users.push(testUser);
+            localStorage.setItem('users', JSON.stringify(users));
+            currentUser = testUser;
+            localStorage.setItem('currentSession', JSON.stringify(currentUser));
+            showChat();
+        }
+
+        function register() {
+            let username = document.getElementById('registerUsername').value.trim();
+            let email = document.getElementById('registerEmail').value.trim();
+            let password = document.getElementById('registerPassword').value;
+            let confirm = document.getElementById('registerConfirmPassword').value;
+            if (!username || !email || !password || !confirm) { alert('Заполните все поля'); return; }
+            if (password !== confirm) { alert('Пароли не совпадают'); return; }
+            let newUser = {
+                id: Date.now(),
+                username: username,
+                email: email,
+                password: password,
+                name: username,
+                country: 'Россия',
+                avatar: '😊',
+                avatarBackground: 'theme-default',
+                friendCode: 'USR' + Math.floor(Math.random() * 1000)
+            };
+            users.push(newUser);
+            localStorage.setItem('users', JSON.stringify(users));
+            currentUser = newUser;
+            localStorage.setItem('currentSession', JSON.stringify(currentUser));
+            alert('Регистрация успешна!');
+            showChat();
+        }
+
+        function login() {
+            let username = document.getElementById('loginUsername').value.trim();
+            let password = document.getElementById('loginPassword').value;
+            let user = users.find(u => u.username === username && u.password === password);
+            if (!user) { alert('Неверное имя или пароль'); return; }
+            currentUser = user;
+            localStorage.setItem('currentSession', JSON.stringify(currentUser));
+            showChat();
+        }
+
+        function logout() {
+            localStorage.removeItem('currentSession');
+            currentUser = null;
+            document.getElementById('chatApp').classList.remove('show');
+            document.getElementById('authContainer').style.display = 'block';
+        }
+
+        function showChat() {
+            document.getElementById('authContainer').style.display = 'none';
+            document.getElementById('chatApp').classList.add('show');
+            document.getElementById('displayName').innerText = currentUser.name;
+            document.getElementById('displayCountry').innerHTML = getFlag(currentUser.country) + ' ' + currentUser.country;
+            document.getElementById('avatar').innerText = currentUser.avatar;
+            document.getElementById('avatar').style.background = getGradientByTheme(currentUser.avatarBackground || 'theme-default');
+            document.getElementById('inputName').value = currentUser.name;
+            document.getElementById('inputCountry').value = currentUser.country;
+            loadEmojis();
+            applyLanguage();
+            addSystemMessage(translations[currentLanguage].welcome);
+        }
+
+        function getFlag(country) {
+            const flags = {
+                'Россия': '🇷🇺', 'США': '🇺🇸', 'Великобритания': '🇬🇧', 'Германия': '🇩🇪',
+                'Франция': '🇫🇷', 'Испания': '🇪🇸', 'Италия': '🇮🇹', 'Китай': '🇨🇳',
+                'Япония': '🇯🇵', 'Корея': '🇰🇷', 'Индия': '🇮🇳', 'Бразилия': '🇧🇷',
+                'Канада': '🇨🇦', 'Мексика': '🇲🇽', 'Аргентина': '🇦🇷', 'Австралия': '🇦🇺',
+                'Египет': '🇪🇬', 'Турция': '🇹🇷', 'Израиль': '🇮🇱', 'ОАЭ': '🇦🇪',
+                'Польша': '🇵🇱', 'Чехия': '🇨🇿', 'Швеция': '🇸🇪', 'Норвегия': '🇳🇴',
+                'Финляндия': '🇫🇮', 'Дания': '🇩🇰', 'Нидерланды': '🇳🇱', 'Бельгия': '🇧🇪',
+                'Швейцария': '🇨🇭', 'Австрия': '🇦🇹', 'Греция': '🇬🇷', 'Португалия': '🇵🇹',
+                'Украина': '🇺🇦', 'Беларусь': '🇧🇾', 'Казахстан': '🇰🇿', 'Узбекистан': '🇺🇿',
+                'Азербайджан': '🇦🇿', 'Грузия': '🇬🇪', 'Армения': '🇦🇲', 'Молдова': '🇲🇩',
+                'Литва': '🇱🇹', 'Латвия': '🇱🇻', 'Эстония': '🇪🇪', 'Польша': '🇵🇱',
+                'Чехия': '🇨🇿', 'Словакия': '🇸🇰', 'Венгрия': '🇭🇺', 'Румыния': '🇷🇴',
+                'Болгария': '🇧🇬', 'Сербия': '🇷🇸', 'Хорватия': '🇭🇷', 'Словения': '🇸🇮',
+                'ЮАР': '🇿🇦', 'Сингапур': '🇸🇬', 'Таиланд': '🇹🇭'
+            };
+            return flags[country] || '🌍';
+        }
+
+        function applyLanguage() {
+            const t = translations[currentLanguage];
+            
+            document.getElementById('mainRoomName').innerText = t.mainRoom;
+            document.getElementById('workRoomName').innerText = t.workRoom;
+            document.getElementById('gamesRoomName').innerText = t.gamesRoom;
+            
+            document.querySelectorAll('.online-text, .online-word').forEach(el => {
+                if (el) el.innerText = t.online;
+            });
+            
+            document.getElementById('editProfileBtn').innerText = t.edit;
+            document.querySelector('.logout-settings-btn').innerText = t.logout;
+            document.getElementById('saveButton').innerText = t.save;
+            document.getElementById('privateButton').innerHTML = '🔒 + ' + t.create;
+            
+            updateFriendsList();
+            updateFriendRequests();
+            updateBlacklist();
+            
+            if (currentRoom) {
+                let room = rooms[currentRoom] || privateRooms[currentRoom];
+                if (room) {
+                    document.getElementById('currentRoomName').innerHTML = room.type === 'public' ? `💬 ${room.name}` : `🔒 ${room.name}`;
+                }
+            }
+        }
+
+        // ========== НАСТРОЙКИ ==========
+        function toggleSettings() { document.getElementById('profileSettings').classList.toggle('show'); }
+
+        function saveProfile() {
+            currentUser.name = document.getElementById('inputName').value;
+            currentUser.country = document.getElementById('inputCountry').value;
+            
+            document.getElementById('displayName').innerText = currentUser.name;
+            document.getElementById('displayCountry').innerHTML = getFlag(currentUser.country) + ' ' + currentUser.country;
+            
+            toggleSettings();
+            localStorage.setItem('currentSession', JSON.stringify(currentUser));
+            
+            let userIndex = users.findIndex(u => u.id === currentUser.id);
+            if (userIndex !== -1) {
+                users[userIndex] = currentUser;
+                localStorage.setItem('users', JSON.stringify(users));
+            }
+        }
+
+        function selectAvatarBackground(theme, element) {
+            document.querySelectorAll('.bg-item').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            currentUser.avatarBackground = theme;
+            document.getElementById('avatar').style.background = getGradientByTheme(theme);
+        }
+
+        function getGradientByTheme(theme) {
+            const gradients = {
+                'theme-default': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                'theme-dark': 'linear-gradient(135deg, #2c3e50 0%, #3498db 100%)',
+                'theme-space': 'linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)',
+                'theme-sunset': 'linear-gradient(135deg, #ff6b6b 0%, #feca57 100%)',
+                'theme-forest': 'linear-gradient(135deg, #134e5e 0%, #71b280 100%)',
+                'theme-ocean': 'linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%)',
+                'theme-candy': 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                'theme-aurora': 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                'theme-lavender': 'linear-gradient(135deg, #b993d6 0%, #8ca6db 100%)',
+                'theme-peach': 'linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)',
+                'theme-mint': 'linear-gradient(135deg, #a8e6cf 0%, #d4edf5 100%)',
+                'theme-coral': 'linear-gradient(135deg, #ff6f61 0%, #ff9a8b 100%)',
+                'theme-twilight': 'linear-gradient(135deg, #a8c0ff 0%, #3f2b96 100%)',
+                'theme-spring': 'linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%)',
+                'theme-neon': 'linear-gradient(135deg, #12c2e9 0%, #c471ed 50%, #f64f59 100%)',
+                'theme-berry': 'linear-gradient(135deg, #ee9ca7 0%, #ffdde1 100%)'
+            };
+            return gradients[theme] || gradients['theme-default'];
+        }
+
+        // ========== ЭМОДЗИ ДЛЯ АВАТАРКИ (20 штук) ==========
+        const avatarEmojis = [
+            '😊', '😎', '🤓', '😇', '🥳', '😍', '🔥', '⭐', 
+            '🦊', '🐼', '🐨', '🦁', '🐱', '🐶', '🐰', '🐸',
+            '🌸', '🌈', '🍕', '🎮'
+        ];
+
+        function loadEmojis() {
+            let grid = document.getElementById('emojiGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            avatarEmojis.forEach(emoji => {
+                let div = document.createElement('div');
+                div.className = 'emoji-item';
+                div.innerText = emoji;
+                div.onclick = function() {
+                    document.querySelectorAll('.emoji-item').forEach(el => el.classList.remove('selected'));
+                    this.classList.add('selected');
+                    currentUser.avatar = emoji;
+                    document.getElementById('avatar').innerText = emoji;
+                };
+                grid.appendChild(div);
+            });
+        }
+
+        // ========== ВКЛАДКИ ==========
+        function switchTab(tab, element) {
+            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            document.getElementById('roomsTab').style.display = tab === 'rooms' ? 'block' : 'none';
+            document.getElementById('countriesTab').style.display = tab === 'countries' ? 'block' : 'none';
+            document.getElementById('friendsTab').style.display = tab === 'friends' ? 'block' : 'none';
+        }
+
+        // ========== КОМНАТЫ ==========
+        function switchRoom(roomId, element) {
+            document.querySelectorAll('.room-item').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            currentRoom = roomId;
+            let room = rooms[roomId] || privateRooms[roomId];
+            if (!room) return;
+            room.unread = 0;
+            document.getElementById('currentRoomName').innerHTML = room.type === 'public' ? `💬 ${room.name}` : `🔒 ${room.name}`;
+            document.getElementById('onlineCount').innerText = room.users ? room.users.length : 0;
+            updateUsersPopup(room.users || []);
+            loadRoomMessages(roomId);
+        }
+
+        function updateUsersPopup(users) {
+            let list = document.getElementById('usersList');
+            if (!list) return;
+            list.innerHTML = '';
+            users.forEach(user => {
+                let div = document.createElement('div');
+                div.className = 'popup-user-item';
+                div.innerHTML = `<div class="popup-user-avatar" style="background: ${getGradientByTheme(currentUser?.avatarBackground || 'theme-default')}">${user.avatar || '👤'}</div><div class="popup-user-name">${user.name}</div>`;
+                list.appendChild(div);
+            });
+        }
+
+        function loadRoomMessages(roomId) {
+            let area = document.getElementById('messagesArea');
+            area.innerHTML = '';
+            let room = rooms[roomId] || privateRooms[roomId];
+            if (room && room.messages && room.messages.length) {
+                room.messages.forEach(msg => addMessageToUI(msg.author, msg.text, msg.time, msg.author === currentUser.name, msg.avatarBg, msg.id, msg.reactions));
+            } else {
+                addSystemMessage(translations[currentLanguage].welcome);
+            }
+        }
+
+        // ========== СТРАНЫ - ТЕПЕРЬ У КАЖДОЙ СВОИ СООБЩЕНИЯ ==========
+        function switchCountry(country) {
+            let roomId = 'country_' + country;
+            
+            // Создаем комнату для страны, если её ещё нет
+            if (!rooms[roomId]) {
+                let countryNames = {
+                    'usa': 'США', 'uk': 'Великобритания', 'germany': 'Германия',
+                    'france': 'Франция', 'spain': 'Испания', 'italy': 'Италия',
+                    'china': 'Китай', 'japan': 'Япония', 'korea': 'Корея',
+                    'brazil': 'Бразилия', 'canada': 'Канада', 'australia': 'Австралия',
+                    'india': 'Индия', 'russia': 'Россия'
+                };
+                rooms[roomId] = { 
+                    name: countryNames[country] || country, 
+                    type: 'public', 
+                    password: null, 
+                    users: [], 
+                    messages: [], 
+                    unread: 0 
+                };
+            }
+            
+            // Переключаемся на комнату страны
+            currentRoom = roomId;
+            
+            // Убираем активный класс со всех комнат
+            document.querySelectorAll('.room-item').forEach(el => el.classList.remove('active'));
+            
+            // Обновляем название вверху
+            document.getElementById('currentRoomName').innerHTML = `🌍 ${rooms[roomId].name}`;
+            document.getElementById('onlineCount').innerText = rooms[roomId].users.length;
+            document.getElementById('popupUserCount').innerText = `(${rooms[roomId].users.length})`;
+            
+            updateUsersPopup(rooms[roomId].users);
+            loadRoomMessages(roomId);
+        }
+
+        // ========== СООБЩЕНИЯ ==========
+        function sendMessage() {
+            let input = document.getElementById('messageInput');
+            let text = input.value.trim();
+            if (!text) return;
+            let time = new Date().toLocaleTimeString();
+            let id = Date.now();
+            let room = rooms[currentRoom] || privateRooms[currentRoom];
+            if (!room) return;
+            if (!room.messages) room.messages = [];
+            let message = { id, author: currentUser.name, text, time, avatarBg: currentUser.avatarBackground, reactions: {} };
+            room.messages.push(message);
+            addMessageToUI(currentUser.name, text, time, true, currentUser.avatarBackground, id);
+            input.value = '';
+        }
+
+        function addMessageToUI(author, text, time, isOwn, avatarBg, messageId, reactions) {
+            let area = document.getElementById('messagesArea');
+            let div = document.createElement('div');
+            div.className = 'message' + (isOwn ? ' own' : '');
+            div.id = `msg-${messageId}`;
+            
+            let bgGradient = isOwn ? getGradientByTheme(currentUser.avatarBackground) : getGradientByTheme(avatarBg || 'theme-default');
+            
+            let reactionsHtml = '';
+            if (reactions) {
+                for (let [emoji, users] of Object.entries(reactions)) {
+                    let userReacted = users.includes(currentUser.name);
+                    reactionsHtml += `<span class="reaction-btn ${userReacted ? 'active' : ''}" onclick="toggleReaction(${messageId}, '${emoji}')">${emoji} <span class="reaction-count">${users.length}</span></span>`;
+                }
+            }
+            
+            div.innerHTML = `
+                <div class="message-avatar" style="background: ${bgGradient}">${isOwn ? currentUser.avatar : '👤'}</div>
+                <div class="message-content">
+                    <div class="message-author">${author}</div>
+                    <div class="message-text">${text}</div>
+                    <div class="message-reactions" id="reactions-${messageId}">${reactionsHtml}</div>
+                    <div class="message-time">${time}</div>
+                </div>
+            `;
+            
+            // Добавляем обработчик контекстного меню для реакций
+            div.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                showReactionMenuForMessage(e, messageId);
+            });
+            
+            // Для мобильных - долгое нажатие
+            let pressTimer;
+            div.addEventListener('touchstart', (e) => {
+                pressTimer = setTimeout(() => {
+                    e.preventDefault();
+                    showReactionMenuForMessage(e, messageId);
+                }, 500);
+            });
+            div.addEventListener('touchend', () => clearTimeout(pressTimer));
+            div.addEventListener('touchmove', () => clearTimeout(pressTimer));
+            
+            area.appendChild(div);
+            area.scrollTop = area.scrollHeight;
+        }
+
+        function addSystemMessage(text) {
+            let area = document.getElementById('messagesArea');
+            let div = document.createElement('div');
+            div.className = 'message';
+            div.innerHTML = `<div class="message-avatar" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">🤖</div><div class="message-content">${text}</div>`;
+            area.appendChild(div);
+        }
+
+        // ========== РЕАКЦИИ ==========
+        function toggleReaction(messageId, emoji) {
+            if (!messageReactions[messageId]) messageReactions[messageId] = {};
+            if (!messageReactions[messageId][emoji]) messageReactions[messageId][emoji] = [];
+            
+            let index = messageReactions[messageId][emoji].indexOf(currentUser.name);
+            if (index === -1) {
+                // Добавляем реакцию
+                messageReactions[messageId][emoji].push(currentUser.name);
+            } else {
+                // Убираем реакцию
+                messageReactions[messageId][emoji].splice(index, 1);
+                if (messageReactions[messageId][emoji].length === 0) {
+                    delete messageReactions[messageId][emoji];
+                }
+            }
+            
+            if (Object.keys(messageReactions[messageId]).length === 0) {
+                delete messageReactions[messageId];
+            }
+            
+            updateReactions(messageId);
+        }
+
+        function updateReactions(messageId) {
+            let div = document.getElementById(`reactions-${messageId}`);
+            if (!div) return;
+            div.innerHTML = '';
+            if (messageReactions[messageId]) {
+                for (let [emoji, users] of Object.entries(messageReactions[messageId])) {
+                    let userReacted = users.includes(currentUser.name);
+                    div.innerHTML += `<span class="reaction-btn ${userReacted ? 'active' : ''}" onclick="toggleReaction(${messageId}, '${emoji}')">${emoji} <span class="reaction-count">${users.length}</span></span>`;
+                }
+            }
+        }
+
+        function showReactionMenuForMessage(e, messageId) {
+            let menu = document.createElement('div');
+            menu.style.position = 'absolute';
+            menu.style.background = 'white';
+            menu.style.borderRadius = '20px';
+            menu.style.padding = '10px';
+            menu.style.boxShadow = '0 5px 20px rgba(0,0,0,0.2)';
+            menu.style.zIndex = '5000';
+            menu.style.display = 'flex';
+            menu.style.gap = '5px';
+            
+            let reactions = ['👍', '❤️', '😂', '😮', '😢', '😡'];
+            reactions.forEach(r => {
+                let btn = document.createElement('span');
+                btn.innerText = r;
+                btn.style.fontSize = '24px';
+                btn.style.cursor = 'pointer';
+                btn.style.padding = '5px';
+                btn.onclick = () => {
+                    toggleReaction(messageId, r);
+                    menu.remove();
+                };
+                menu.appendChild(btn);
+            });
+            
+            document.body.appendChild(menu);
+            menu.style.left = e.pageX + 'px';
+            menu.style.top = e.pageY + 'px';
+            
+            setTimeout(() => menu.remove(), 3000);
+        }
+
+        // ========== ПРИВАТНЫЕ КОМНАТЫ ==========
+        function openPrivateModal() {
+            document.getElementById('privateModal').classList.add('show');
+            document.getElementById('modalTitle').innerText = translations[currentLanguage].create;
+            document.getElementById('modalActionBtn').innerText = translations[currentLanguage].create;
+            document.getElementById('modalActionBtn').setAttribute('onclick', 'createPrivateRoom()');
+        }
+
+        function closePrivateModal() { document.getElementById('privateModal').classList.remove('show'); }
+
+        function switchToJoinMode() {
+            document.getElementById('modalTitle').innerText = translations[currentLanguage].join;
+            document.getElementById('modalActionBtn').innerText = translations[currentLanguage].join;
+            document.getElementById('modalActionBtn').setAttribute('onclick', 'joinPrivateRoom()');
+        }
+
+        function createPrivateRoom() {
+            let name = document.getElementById('roomNameInput').value.trim();
+            let pass = document.getElementById('roomPasswordInput').value.trim();
+            let t = translations[currentLanguage];
+            if (!name || !pass) { alert('Введите название и пароль'); return; }
+            let id = 'priv_' + Date.now();
+            privateRooms[id] = { name, password: pass, type: 'private', users: [{ name: currentUser.name, avatar: currentUser.avatar, online: true }], messages: [] };
+            addPrivateRoomToSidebar(id, name);
+            closePrivateModal();
+            document.getElementById('roomNameInput').value = '';
+            document.getElementById('roomPasswordInput').value = '';
+            alert(t.roomCreated);
+            let element = document.querySelector(`[data-roomid="${id}"]`);
+            if (element) switchPrivateRoom(id, element);
+        }
+
+        function joinPrivateRoom() {
+            let name = document.getElementById('roomNameInput').value.trim();
+            let pass = document.getElementById('roomPasswordInput').value.trim();
+            let t = translations[currentLanguage];
+            for (let id in privateRooms) {
+                if (privateRooms[id].name === name && privateRooms[id].password === pass) {
+                    if (!privateRooms[id].users.some(u => u.name === currentUser.name)) {
+                        privateRooms[id].users.push({ name: currentUser.name, avatar: currentUser.avatar, online: true });
+                    }
+                    addPrivateRoomToSidebar(id, name);
+                    closePrivateModal();
+                    document.getElementById('roomNameInput').value = '';
+                    document.getElementById('roomPasswordInput').value = '';
+                    alert(t.roomJoined);
+                    let element = document.querySelector(`[data-roomid="${id}"]`);
+                    if (element) switchPrivateRoom(id, element);
+                    return;
+                }
+            }
+            alert(t.roomNotFound);
+        }
+
+        function addPrivateRoomToSidebar(id, name) {
+            let container = document.getElementById('privateRoomsList');
+            if (!container) return;
+            if (document.querySelector(`[data-roomid="${id}"]`)) return;
+            let div = document.createElement('div');
+            div.className = 'room-item';
+            div.setAttribute('data-roomid', id);
+            div.innerHTML = `🔒 ${name} <span class="room-users">(👥 ${privateRooms[id].users.length})</span> <button class="delete-room-btn" onclick="deletePrivateRoom('${id}', event)">✖</button>`;
+            div.onclick = (e) => {
+                if (e.target.tagName !== 'BUTTON') switchPrivateRoom(id, div);
+            };
+            container.appendChild(div);
+        }
+
+        function deletePrivateRoom(id, event) {
+            event.stopPropagation();
+            let t = translations[currentLanguage];
+            if (confirm(t.confirmDelete)) {
+                delete privateRooms[id];
+                let el = document.querySelector(`[data-roomid="${id}"]`);
+                if (el) el.remove();
+                if (currentRoom === id) switchRoom('main', document.querySelector('.room-item[onclick*="main"]'));
+                alert(t.roomDeleted);
+            }
+        }
+
+        function switchPrivateRoom(id, element) {
+            switchRoom(id, element);
+        }
+
+        function openRoomSettings() {
+            let room = rooms[currentRoom] || privateRooms[currentRoom];
+            if (!room) return;
+            let t = translations[currentLanguage];
+            let usersList = room.users ? room.users.map(u => u.name).join(', ') : 'Нет участников';
+            let passwordDisplay = room.password ? room.password : (room.type === 'public' ? 'Публичная' : 'Нет пароля');
+            document.getElementById('roomInfo').innerHTML = `
+                <div class="room-info-item"><strong>${t.name}:</strong> ${room.name}</div>
+                <div class="room-info-item"><strong>${t.password}:</strong> ${passwordDisplay}</div>
+                <div class="room-info-item"><strong>${t.participants} (${room.users ? room.users.length : 0}):</strong> ${usersList}</div>
+            `;
+            document.getElementById('roomSettingsModal').classList.add('show');
+        }
+
+        function closeRoomSettings() { document.getElementById('roomSettingsModal').classList.remove('show'); }
+
+        // ========== ДРУЗЬЯ ==========
+        function openAddFriendModal() {
+            document.getElementById('addFriendModal').classList.add('show');
+            document.getElementById('userFriendCode').innerText = currentUser.friendCode;
+            document.getElementById('friendRequestStatus').innerText = '';
+            document.getElementById('friendRequestStatus').className = 'status-error';
+            document.getElementById('friendCodeInput').value = '';
+        }
+
+        function closeAddFriendModal() { document.getElementById('addFriendModal').classList.remove('show'); }
+
+        function sendFriendRequest() {
+            let code = document.getElementById('friendCodeInput').value.trim().toUpperCase();
+            let t = translations[currentLanguage];
+            let status = document.getElementById('friendRequestStatus');
+            
+            if (!code) { 
+                status.innerText = t.emptyCode; 
+                status.className = 'status-error';
+                return; 
+            }
+            if (code === currentUser.friendCode) { 
+                status.innerText = t.selfCode; 
+                status.className = 'status-error';
+                return; 
+            }
+            
+            let foundUser = users.find(u => u.friendCode === code);
+            if (!foundUser) { 
+                status.innerText = t.userNotFound; 
+                status.className = 'status-error';
+                return; 
+            }
+            
+            if (sentRequests.some(r => r.code === code)) { 
+                status.innerText = t.alreadySent; 
+                status.className = 'status-error';
+                return; 
+            }
+            
+            sentRequests.push({ code, name: foundUser.name, avatar: foundUser.avatar });
+            status.innerText = t.requestSent;
+            status.className = 'status-success';
+            
+            setTimeout(() => {
+                if (!friendRequests.some(r => r.code === code)) {
+                    friendRequests.push({ name: foundUser.name, avatar: foundUser.avatar, code });
+                    updateFriendRequests();
+                }
+            }, 2000);
+        }
+
+        function updateFriendRequests() {
+            let div = document.getElementById('friendRequests');
+            if (!div) return;
+            let t = translations[currentLanguage];
+            if (!friendRequests.length) { div.innerHTML = ''; return; }
+            div.innerHTML = '<div class="rooms-title">ЗАПРОСЫ</div>';
+            friendRequests.forEach((req, i) => {
+                div.innerHTML += `
+                    <div class="friend-request">
+                        <div class="friend-avatar">${req.avatar}</div>
+                        <div class="friend-name">${req.name}</div>
+                        <div class="request-buttons">
+                            <button class="accept-btn" onclick="acceptRequest(${i})">${t.accept}</button>
+                            <button class="decline-btn" onclick="declineRequest(${i})">${t.decline}</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function acceptRequest(i) {
+            let req = friendRequests[i];
+            friends.push({ ...req, online: true, lastSeen: 'только что' });
+            friendRequests.splice(i, 1);
+            updateFriendRequests();
+            updateFriendsList();
+        }
+
+        function declineRequest(i) { friendRequests.splice(i, 1); updateFriendRequests(); }
+
+        function updateFriendsList() {
+            let div = document.getElementById('friendsList');
+            let t = translations[currentLanguage];
+            if (!friends.length) { div.innerHTML = `<div style="text-align:center;padding:20px">${t.noFriends}</div>`; return; }
+            div.innerHTML = '';
+            friends.forEach((f, i) => {
+                div.innerHTML += `
+                    <div class="friend-item">
+                        <div class="friend-avatar ${f.online ? 'online' : ''}">${f.avatar}</div>
+                        <div class="friend-info">
+                            <div class="friend-name">${f.name}</div>
+                            <div class="friend-status ${f.online ? '' : 'offline'}">${f.online ? '🟢 ' + t.online : '⚫ ' + t.offline}</div>
+                        </div>
+                        <div class="friend-actions">
+                            <button class="friend-action-btn message" onclick="openPrivateChat(${i})">💬</button>
+                            <button class="friend-action-btn delete" onclick="deleteFriend(${i})">🗑️</button>
+                            <button class="friend-action-btn ban" onclick="banFriend(${i})">⛔</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function deleteFriend(i) { friends.splice(i, 1); updateFriendsList(); }
+
+        function banFriend(i) {
+            let banned = friends[i];
+            blacklist.push(banned);
+            friends.splice(i, 1);
+            updateFriendsList();
+            updateBlacklist();
+        }
+
+        function updateBlacklist() {
+            let div = document.getElementById('blacklist');
+            let t = translations[currentLanguage];
+            if (!blacklist.length) { div.innerHTML = ''; return; }
+            div.innerHTML = '<div class="rooms-title">' + t.blacklist + '</div>';
+            blacklist.forEach((u, i) => {
+                div.innerHTML += `
+                    <div class="friend-item">
+                        <div class="friend-avatar">${u.avatar}</div>
+                        <div class="friend-name">${u.name}</div>
+                        <button class="friend-action-btn" onclick="unbanUser(${i})">↩️</button>
+                    </div>
+                `;
+            });
+        }
+
+        function unbanUser(i) {
+            let unbanned = blacklist[i];
+            friends.push({ ...unbanned, online: false, lastSeen: 'разблокирован' });
+            blacklist.splice(i, 1);
+            updateFriendsList();
+            updateBlacklist();
+        }
+
+        // ========== ЛИЧНЫЙ ЧАТ ==========
+        let currentPrivateChat = null;
+        function openPrivateChat(i) {
+            let friend = friends[i];
+            currentPrivateChat = friend;
+            document.getElementById('privateChatName').innerText = `Чат с ${friend.name}`;
+            document.getElementById('privateChat').classList.add('show');
+            document.getElementById('privateChatMessages').innerHTML = '';
+        }
+
+        function closePrivateChat() {
+            document.getElementById('privateChat').classList.remove('show');
+            currentPrivateChat = null;
+        }
+
+        function sendPrivateMessage() {
+            let input = document.getElementById('privateChatInput');
+            let text = input.value.trim();
+            if (!text || !currentPrivateChat) return;
+            let div = document.createElement('div');
+            div.className = 'message own';
+            div.innerHTML = `<div class="message-content">${text}<div class="message-time">только что</div></div>`;
+            document.getElementById('privateChatMessages').appendChild(div);
+            input.value = '';
+        }
+
+        // ========== ЭМОДЗИ ДЛЯ СООБЩЕНИЙ ==========
+        function toggleEmojiPicker() { document.getElementById('emojiPicker').classList.toggle('show'); }
+        function addEmoji(emoji) { document.getElementById('messageInput').value += emoji; }
+
+        // ========== ПОПАПЫ ==========
+        function toggleUsersPopup() { document.getElementById('usersPopup').classList.toggle('show'); }
+
+        // Закрытие попапов
+        document.addEventListener('click', function(e) {
+            let picker = document.getElementById('emojiPicker');
+            let btn = document.querySelector('.emoji-picker-btn');
+            if (picker && picker.classList.contains('show') && !picker.contains(e.target) && !btn?.contains(e.target)) {
+                picker.classList.remove('show');
+            }
+            let popup = document.getElementById('usersPopup');
+            let counter = document.querySelector('.online-counter');
+            if (popup && popup.classList.contains('show') && !popup.contains(e.target) && !counter?.contains(e.target)) {
+                popup.classList.remove('show');
+            }
+        });
+    </script>
+</body>
+</html>
