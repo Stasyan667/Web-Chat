@@ -1766,8 +1766,12 @@
     let pinnedMessages = {};
 
     // ========== ПОДКЛЮЧЕНИЕ К СЕРВЕРУ ==========
-    const socket = io();
-
+const socket = io({
+  transports: ['websocket', 'polling'],
+  reconnection: true,
+  reconnectionAttempts: 5,
+  reconnectionDelay: 1000
+});
     // ========== ДАННЫЕ ПОЛЬЗОВАТЕЛЯ ДЛЯ СОКЕТА ==========
     let socketUser = {
         name: 'Аноним',
