@@ -2534,5 +2534,173 @@
             }
         });
     </script>
+<!-- Подключаем Socket.IO -->
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    // ========== ПОДКЛЮЧЕНИЕ К СЕРВЕРУ ==========
+    const socket = io();
+
+    // ========== ДАННЫЕ ПОЛЬЗОВАТЕЛЯ ==========
+    let currentUser = {
+        name: 'Аноним',
+        country: 'Россия',
+        avatar: '😊'
+    };
+    let currentRoom = 'main';
+
+    // ========== ПРИ ЗАГРУЗКЕ СТРАНИЦЫ ==========
+    window.onload = function() {
+        // Регистрируем пользователя на сервере
+        socket.emit('user:register', currentUser);
+        
+        // Подключаемся к общей комнате
+        joinRoom('main');
+    };
+
+    // ========== РЕДАКТИРОВАНИЕ ПРОФИЛЯ ==========
+    function editProfile() {
+        let newName = prompt('Введите ваше имя:', currentUser.name);
+        if (newName && newName.trim()) {
+            currentUser.name = newName.trim();
+            document.getElementById('displayName').innerText = currentUser.name;
+            
+            // Отправляем обновленные данные на сервер
+            socket.emit('user:register', currentUser);
+        }
+    }
+
+    // ========== ПЕРЕКЛЮЧЕНИЕ КОМНАТ ==========
+    function joinRoom(roomId) {
+        // Убираем активный класс у всех комнат
+        document.querySelectorAll('.room-item').forEach(el => el.classList.remove('active'));
+        
+        // Добавляем активный класс выбранной комнате
+        let roomElement = document.querySelector(`[onclick="joinRoom('${roomId}')"]`);
+        if (roomElement) roomElement.classList.add('active');
+        
+        currentRoom = roomId;
+        
+        // Обновляем название комнаты в шапке
+        let roomNames = {
+            'main': 'Общая',
+            'work': 'Работа',
+            'games': 'Игры'
+        };
+        document.getElementById('currentRoomName').innerHTML = `💬 ${roomNames[roomId]}`;
+        
+        // Отправляем запрос на сервер для подключения к комнате
+        socket.emit('room:join', roomId, (data) => {
+            // Очищаем сообщения
+            document.getElementById('messagesArea').innerHTML = '';
+            
+            // Загружаем историю сообщений
+            if (data.messages && data.messages.length > 0) {
+                data.messages.forEach(msg => {
+                    addMessageToUI(msg.author, msg.text, msg.time, msg.author === currentUser.name);
+                });
+            } else {
+                addSystemMessage('Добро пожаловать в чат!');
+            }
+            
+            // Обновляем онлайн счетчик
+            document.getElementById('onlineCount').innerText = data.users.length;
+            
+            // Обновляем список пользователей
+            updateUsersList(data.users);
+        });
+    }
+
+    // ========== ОТПРАВКА СООБЩЕНИЯ ==========
+    function sendMessage() {
+        let input = document.getElementById('messageInput');
+        let text = input.value.trim();
+        if (!text) return;
+        
+        // Отправляем сообщение на сервер
+        socket.emit('message:send', { text });
+        input.value = '';
+    }
+
+    // ========== ПОЛУЧЕНИЕ НОВОГО СООБЩЕНИЯ ==========
+    socket.on('message:new', (message) => {
+        addMessageToUI(message.author, message.text, message.time, message.author === currentUser.name);
+    });
+
+    // ========== ДОБАВЛЕНИЕ СООБЩЕНИЯ В ИНТЕРФЕЙС ==========
+    function addMessageToUI(author, text, time, isOwn) {
+        let area = document.getElementById('messagesArea');
+        let messageDiv = document.createElement('div');
+        messageDiv.className = 'message' + (isOwn ? ' own' : '');
+        
+        let avatarLetter = author.charAt(0).toUpperCase();
+        messageDiv.innerHTML = `
+            <div class="message-avatar">${avatarLetter}</div>
+            <div class="message-content">
+                <div class="message-author">${author} ${isOwn ? '(Вы)' : ''}</div>
+                <div class="message-text">${text}</div>
+                <div class="message-time">${time}</div>
+            </div>
+        `;
+        area.appendChild(messageDiv);
+        area.scrollTop = area.scrollHeight;
+    }
+
+    // ========== СИСТЕМНОЕ СООБЩЕНИЕ ==========
+    function addSystemMessage(text) {
+        let area = document.getElementById('messagesArea');
+        let messageDiv = document.createElement('div');
+        messageDiv.className = 'message';
+        messageDiv.innerHTML = `
+            <div class="message-avatar">🤖</div>
+            <div class="message-content">
+                <div class="message-author">Система</div>
+                <div class="message-text">${text}</div>
+                <div class="message-time">${new Date().toLocaleTimeString()}</div>
+            </div>
+        `;
+        area.appendChild(messageDiv);
+    }
+
+    // ========== ОБНОВЛЕНИЕ ОНЛАЙН СЧЕТЧИКА ==========
+    socket.on('online:update', (count) => {
+        document.getElementById('onlineCount').innerText = count;
+    });
+
+    // ========== УВЕДОМЛЕНИЯ О ПОДКЛЮЧЕНИИ/ОТКЛЮЧЕНИИ ==========
+    socket.on('user:joined', (userName) => {
+        addSystemMessage(`${userName} присоединился к чату`);
+    });
+
+    socket.on('user:left', (userName) => {
+        addSystemMessage(`${userName} покинул чат`);
+    });
+
+    // ========== ОБНОВЛЕНИЕ СПИСКА ПОЛЬЗОВАТЕЛЕЙ ==========
+    function updateUsersList(users) {
+        let list = document.getElementById('usersList');
+        if (!list) return;
+        list.innerHTML = '';
+        users.forEach(user => {
+            let div = document.createElement('div');
+            div.className = 'user-item';
+            div.innerHTML = `<span class="user-status"></span> ${user.name}`;
+            list.appendChild(div);
+        });
+    }
+
+    // ========== ПОКАЗ/СКРЫТИЕ СПИСКА ПОЛЬЗОВАТЕЛЕЙ ==========
+    function toggleUsersPopup() {
+        document.getElementById('usersPopup').classList.toggle('show');
+    }
+
+    // ========== ЗАКРЫТИЕ ПОПАПА ПРИ КЛИКЕ ВНЕ ==========
+    window.onclick = function(event) {
+        let popup = document.getElementById('usersPopup');
+        let counter = document.querySelector('.online-counter');
+        if (popup && !counter.contains(event.target) && !popup.contains(event.target)) {
+            popup.classList.remove('show');
+        }
+    };
+</script>
 </body>
 </html>
