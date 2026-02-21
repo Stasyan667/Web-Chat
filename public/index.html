@@ -1837,6 +1837,17 @@
         showChat();
     }
 
+// ========== ФУНКЦИЯ ДЛЯ БЕЗОПАСНОСТИ (экранирование HTML) ==========
+function escapeHtml(unsafe) {
+    if (!unsafe) return '';
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
     // ========== ПРАВИЛА ==========
     function showTerms() { document.getElementById('termsModal').classList.add('show'); }
     function closeTerms() { document.getElementById('termsModal').classList.remove('show'); }
@@ -1865,7 +1876,24 @@
             friendCode: 'TEST' + Math.floor(Math.random() * 1000)
         };
         users.push(testUser);
-        localStorage.setItem('users', JSON.stringify(users));
+        try {
+    // Проверяем размер перед сохранением
+    let usersJSON = JSON.stringify(users);
+    if (usersJSON.length < 5000000) { // 5MB лимит
+    } else {
+        console.warn('Слишком много данных для localStorage');
+        // Сохраняем только последних 100 пользователей
+        let recentUsers = users.slice(-100);
+        localStorage.setItem('users', JSON.stringify(recentUsers));
+    }
+} catch (e) {
+    console.error('Ошибка сохранения в localStorage:', e);
+    // Если переполнение, очищаем старые данные
+    if (e.name === 'QuotaExceededError') {
+        let recentUsers = users.slice(-50); // Оставляем только последних 50
+        localStorage.setItem('users', JSON.stringify(recentUsers));
+    }
+}
         currentUser = testUser;
         socketUser = { name: testUser.name, country: testUser.country, avatar: testUser.avatar };
         localStorage.setItem('currentSession', JSON.stringify(currentUser));
@@ -1891,7 +1919,26 @@
             friendCode: 'USR' + Math.floor(Math.random() * 1000)
         };
         users.push(newUser);
-        localStorage.setItem('users', JSON.stringify(users));
+try {
+    // Проверяем размер перед сохранением
+    let usersJSON = JSON.stringify(users);
+    if (usersJSON.length < 5000000) { // 5MB лимит
+        localStorage.setItem('users', JSON.stringify(users)); 
+    } else {
+        console.warn('Слишком много данных для localStorage');
+        // Сохраняем только последних 100 пользователей
+        let recentUsers = users.slice(-100);
+        localStorage.setItem('users', JSON.stringify(recentUsers));
+    }
+} catch (e) {
+    console.error('Ошибка сохранения в localStorage:', e);
+    // Если переполнение, очищаем старые данные
+    if (e.name === 'QuotaExceededError') {
+        let recentUsers = users.slice(-50); // Оставляем только последних 50
+        localStorage.setItem('users', JSON.stringify(recentUsers));
+    }
+}
+
         currentUser = newUser;
         socketUser = { name: newUser.name, country: newUser.country, avatar: newUser.avatar };
         localStorage.setItem('currentSession', JSON.stringify(currentUser));
@@ -1957,33 +2004,54 @@
         return flags[country] || '🌍';
     }
 
-    function applyLanguage() {
-        const t = translations[currentLanguage];
-        
-        document.getElementById('mainRoomName').innerText = t.mainRoom;
-        document.getElementById('workRoomName').innerText = t.workRoom;
-        document.getElementById('gamesRoomName').innerText = t.gamesRoom;
-        
-        document.querySelectorAll('.online-text, .online-word').forEach(el => {
-            if (el) el.innerText = t.online;
-        });
-        
-        document.getElementById('editProfileBtn').innerText = t.edit;
-        document.querySelector('.logout-settings-btn').innerText = t.logout;
-        document.getElementById('saveButton').innerText = t.save;
-        document.getElementById('privateButton').innerHTML = '🔒 + ' + t.create;
-        
-        updateFriendsList();
-        updateFriendRequests();
-        updateBlacklist();
-        
-        if (currentRoom) {
-            let room = rooms[currentRoom] || privateRooms[currentRoom];
-            if (room) {
-                document.getElementById('currentRoomName').innerHTML = room.type === 'public' ? `💬 ${room.name}` : `🔒 ${room.name}`;
+function applyLanguage() {
+    const t = translations[currentLanguage];
+    
+    // Названия комнат
+    let mainRoomEl = document.getElementById('mainRoomName');
+    if (mainRoomEl) mainRoomEl.innerText = t.mainRoom;
+    
+    let workRoomEl = document.getElementById('workRoomName');
+    if (workRoomEl) workRoomEl.innerText = t.workRoom;
+    
+    let gamesRoomEl = document.getElementById('gamesRoomName');
+    if (gamesRoomEl) gamesRoomEl.innerText = t.gamesRoom;
+    
+    // Текст "онлайн" везде
+    document.querySelectorAll('.online-text, .online-word, .online-counter span:last-child').forEach(el => {
+        if (el) el.innerText = t.online;
+    });
+    
+    // Кнопка редактирования профиля (по классу, а не по ID)
+    let editProfileBtn = document.querySelector('.edit-profile-btn');
+    if (editProfileBtn) editProfileBtn.innerText = t.edit;
+    
+    // Кнопка выхода в настройках
+    let logoutBtn = document.querySelector('.logout-settings-btn');
+    if (logoutBtn) logoutBtn.innerText = t.logout;
+    
+    // Кнопка сохранения (по классу)
+    let saveBtn = document.querySelector('.save-settings');
+    if (saveBtn) saveBtn.innerText = t.save;
+    
+    // Кнопка создания приватной комнаты (по классу)
+    let privateBtn = document.querySelector('.private-room-btn');
+    if (privateBtn) privateBtn.innerHTML = '🔒 + ' + t.create;
+    
+    updateFriendsList();
+    updateFriendRequests();
+    updateBlacklist();
+    
+    if (currentRoom) {
+        let room = rooms[currentRoom] || privateRooms[currentRoom];
+        if (room) {
+            let roomNameEl = document.getElementById('currentRoomName');
+            if (roomNameEl) {
+                roomNameEl.innerHTML = room.type === 'public' ? `💬 ${room.name}` : `🔒 ${room.name}`;
             }
         }
     }
+}
 
     // ========== НАСТРОЙКИ ==========
     function toggleSettings() { document.getElementById('profileSettings').classList.toggle('show'); }
@@ -2001,8 +2069,26 @@
         socket.emit('user:register', socketUser);
         
         toggleSettings();
-        localStorage.setItem('currentSession', JSON.stringify(currentUser));
-        
+          try {
+    // Проверяем размер перед сохранением
+    let usersJSON = JSON.stringify(users);
+    if (usersJSON.length < 5000000) { // 5MB лимит
+        localStorage.setItem('users', JSON.stringify(users));
+    } else {
+        console.warn('Слишком много данных для localStorage');
+        // Сохраняем только последних 100 пользователей
+        let recentUsers = users.slice(-100);
+        localStorage.setItem('users', JSON.stringify(recentUsers));
+    }
+} catch (e) {
+    console.error('Ошибка сохранения в localStorage:', e);
+    // Если переполнение, очищаем старые данные
+    if (e.name === 'QuotaExceededError') {
+        let recentUsers = users.slice(-50); // Оставляем только последних 50
+        localStorage.setItem('users', JSON.stringify(recentUsers));
+    }
+}
+     
         let userIndex = users.findIndex(u => u.id === currentUser.id);
         if (userIndex !== -1) {
             users[userIndex] = currentUser;
@@ -2105,40 +2191,40 @@
     }
 
     // ========== СТРАНЫ ==========
-    function switchCountry(country) {
-        let roomId = 'country_' + country;
-        
-        if (!rooms[roomId]) {
-            let countryNames = {
-                'usa': 'США', 'uk': 'Великобритания', 'germany': 'Германия',
-                'france': 'Франция', 'spain': 'Испания', 'italy': 'Италия',
-                'china': 'Китай', 'japan': 'Япония', 'korea': 'Корея',
-                'brazil': 'Бразилия', 'canada': 'Канада', 'australia': 'Австралия',
-                'india': 'Индия', 'russia': 'Россия'
-            };
-            rooms[roomId] = { 
-                name: countryNames[country] || country, 
-                type: 'public', 
-                password: null, 
-                users: [], 
-                messages: [], 
-                unread: 0 
-            };
-        }
-        
-        currentRoom = roomId;
-        document.querySelectorAll('.room-item').forEach(el => el.classList.remove('active'));
-        document.getElementById('currentRoomName').innerHTML = `🌍 ${rooms[roomId].name}`;
-        document.getElementById('onlineCount').innerText = rooms[roomId].users.length;
-        document.getElementById('popupUserCount').innerText = `(${rooms[roomId].users.length})`;
-        
-        updateUsersPopup(rooms[roomId].users);
-        loadRoomMessages(roomId);
-        
-        // Подключаемся к комнате через сокет
-        joinRoomSocket(roomId);
+   function switchCountry(country) {
+    let roomId = 'country_' + country;
+    
+    if (!rooms[roomId]) {
+        let countryNames = {
+            'usa': 'США', 'uk': 'Великобритания', 'germany': 'Германия',
+            'france': 'Франция', 'spain': 'Испания', 'italy': 'Италия',
+            'china': 'Китай', 'japan': 'Япония', 'korea': 'Корея',
+            'brazil': 'Бразилия', 'canada': 'Канада', 'australia': 'Австралия',
+            'india': 'Индия', 'russia': 'Россия'
+        };
+        rooms[roomId] = { 
+            name: countryNames[country] || country, 
+            type: 'public', 
+            password: null, 
+            users: [], 
+            messages: [], 
+            unread: 0 
+        };
     }
-
+    
+    currentRoom = roomId;
+    document.querySelectorAll('.room-item').forEach(el => el.classList.remove('active'));
+    document.getElementById('currentRoomName').innerHTML = `🌍 ${rooms[roomId].name}`;
+    document.getElementById('onlineCount').innerText = rooms[roomId].users.length;
+    
+    // document.getElementById('popupUserCount').innerText = `(${rooms[roomId].users.length})`;
+    
+    updateUsersPopup(rooms[roomId].users);
+    loadRoomMessages(roomId);
+    
+    // Подключаемся к комнате через сокет
+    joinRoomSocket(roomId);
+}
     // ========== СООБЩЕНИЯ (ЛОКАЛЬНЫЕ) ==========
     function sendMessage() {
         let input = document.getElementById('messageInput');
@@ -2158,32 +2244,46 @@
         socket.emit('message:send', { text });
     }
 
-    function addMessageToUI(author, text, time, isOwn, avatarBg, messageId, reactions) {
-        let area = document.getElementById('messagesArea');
-        let div = document.createElement('div');
-        div.className = 'message' + (isOwn ? ' own' : '');
-        div.id = `msg-${messageId}`;
-        
-        let bgGradient = isOwn ? getGradientByTheme(currentUser.avatarBackground) : getGradientByTheme(avatarBg || 'theme-default');
-        
-        let reactionsHtml = '';
-        if (reactions) {
-            for (let [emoji, users] of Object.entries(reactions)) {
+   function addMessageToUI(author, text, time, isOwn, avatarBg, messageId, reactions) {
+    let area = document.getElementById('messagesArea');
+    if (!area) return;
+    
+    let div = document.createElement('div');
+    div.className = 'message' + (isOwn ? ' own' : '');
+    if (messageId) div.id = `msg-${messageId}`;
+    
+    // Проверяем существование currentUser
+    if (!currentUser) return;
+    
+    let bgGradient = isOwn ? getGradientByTheme(currentUser.avatarBackground) : getGradientByTheme(avatarBg || 'theme-default');
+    let avatar = isOwn ? (currentUser.avatar || '👤') : '👤';
+    
+    // Экранируем текст сообщения для безопасности
+    let escapedText = escapeHtml(text);
+    let escapedAuthor = escapeHtml(author);
+    
+    let reactionsHtml = '';
+    if (reactions && typeof reactions === 'object') {
+        for (let [emoji, users] of Object.entries(reactions)) {
+            if (Array.isArray(users)) {
                 let userReacted = users.includes(currentUser.name);
                 reactionsHtml += `<span class="reaction-btn ${userReacted ? 'active' : ''}" onclick="toggleReaction(${messageId}, '${emoji}')">${emoji} <span class="reaction-count">${users.length}</span></span>`;
             }
         }
-        
-        div.innerHTML = `
-            <div class="message-avatar" style="background: ${bgGradient}">${isOwn ? currentUser.avatar : '👤'}</div>
-            <div class="message-content">
-                <div class="message-author">${author}</div>
-                <div class="message-text">${text}</div>
-                <div class="message-reactions" id="reactions-${messageId}">${reactionsHtml}</div>
-                <div class="message-time">${time}</div>
-            </div>
-        `;
-        
+    }
+    
+    div.innerHTML = `
+        <div class="message-avatar" style="background: ${bgGradient}">${avatar}</div>
+        <div class="message-content">
+            <div class="message-author">${escapedAuthor}</div>
+            <div class="message-text">${escapedText}</div>
+            <div class="message-reactions" id="reactions-${messageId || ''}">${reactionsHtml}</div>
+            <div class="message-time">${escapeHtml(time || '')}</div>
+        </div>
+    `;
+    
+    // Добавляем обработчики с проверкой messageId
+    if (messageId) {
         div.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             showReactionMenuForMessage(e, messageId);
@@ -2198,10 +2298,11 @@
         });
         div.addEventListener('touchend', () => clearTimeout(pressTimer));
         div.addEventListener('touchmove', () => clearTimeout(pressTimer));
-        
-        area.appendChild(div);
-        area.scrollTop = area.scrollHeight;
     }
+    
+    area.appendChild(div);
+    area.scrollTop = area.scrollHeight;
+}
 
     function addSystemMessage(text) {
         let area = document.getElementById('messagesArea');
@@ -2212,26 +2313,29 @@
     }
 
     // ========== РЕАКЦИИ ==========
-    function toggleReaction(messageId, emoji) {
-        if (!messageReactions[messageId]) messageReactions[messageId] = {};
-        if (!messageReactions[messageId][emoji]) messageReactions[messageId][emoji] = [];
-        
-        let index = messageReactions[messageId][emoji].indexOf(currentUser.name);
-        if (index === -1) {
-            messageReactions[messageId][emoji].push(currentUser.name);
-        } else {
-            messageReactions[messageId][emoji].splice(index, 1);
-            if (messageReactions[messageId][emoji].length === 0) {
-                delete messageReactions[messageId][emoji];
-            }
+ function toggleReaction(messageId, emoji) {
+    // Добавляем проверку на существование пользователя
+    if (!currentUser) return;
+    
+    if (!messageReactions[messageId]) messageReactions[messageId] = {};
+    if (!messageReactions[messageId][emoji]) messageReactions[messageId][emoji] = [];
+    
+    let index = messageReactions[messageId][emoji].indexOf(currentUser.name);
+    if (index === -1) {
+        messageReactions[messageId][emoji].push(currentUser.name);
+    } else {
+        messageReactions[messageId][emoji].splice(index, 1);
+        if (messageReactions[messageId][emoji].length === 0) {
+            delete messageReactions[messageId][emoji];
         }
-        
-        if (Object.keys(messageReactions[messageId]).length === 0) {
-            delete messageReactions[messageId];
-        }
-        
-        updateReactions(messageId);
     }
+    
+    if (Object.keys(messageReactions[messageId]).length === 0) {
+        delete messageReactions[messageId];
+    }
+    
+    updateReactions(messageId);
+}
 
     function updateReactions(messageId) {
         let div = document.getElementById(`reactions-${messageId}`);
@@ -2552,66 +2656,93 @@
     // ========== СОКЕТ СОБЫТИЯ ==========
     
     // Подключение к комнате через сокет
-    function joinRoomSocket(roomId) {
-        socketCurrentRoom = roomId;
-        socket.emit('room:join', roomId, (data) => {
-            // Очищаем сообщения
-            document.getElementById('messagesArea').innerHTML = '';
-            
-            // Загружаем историю сообщений
-            if (data.messages && data.messages.length > 0) {
-                data.messages.forEach(msg => {
-                    addMessageToUI(msg.author, msg.text, msg.time, msg.author === currentUser.name);
-                });
-            } else {
-                addSystemMessage('Добро пожаловать в чат!');
-            }
-            
-            // Обновляем онлайн счетчик
-            document.getElementById('onlineCount').innerText = data.users.length;
-            
-            // Обновляем список пользователей
+function joinRoomSocket(roomId) {
+    if (!socket) return;
+    
+    socketCurrentRoom = roomId;
+    socket.emit('room:join', roomId, (data) => {
+        // Проверяем наличие ошибки
+        if (data && data.error) {
+            console.error('Ошибка подключения к комнате:', data.error);
+            addSystemMessage('Ошибка подключения к комнате');
+            return;
+        }
+        
+        // Очищаем сообщения
+        let messagesArea = document.getElementById('messagesArea');
+        if (messagesArea) messagesArea.innerHTML = '';
+        
+        // Загружаем историю сообщений
+        if (data && data.messages && Array.isArray(data.messages) && data.messages.length > 0) {
+            data.messages.forEach(msg => {
+                if (msg && msg.author && msg.text) {
+                    addMessageToUI(msg.author, msg.text, msg.time, msg.author === currentUser?.name);
+                }
+            });
+        } else {
+            addSystemMessage('Добро пожаловать в чат!');
+        }
+        
+        // Обновляем онлайн счетчик
+        let onlineEl = document.getElementById('onlineCount');
+        if (onlineEl) onlineEl.innerText = (data && data.users && data.users.length) ? data.users.length : 0;
+        
+        // Обновляем список пользователей
+        if (data && data.users) {
             updateUsersListSocket(data.users);
-        });
+        }
+    });
+}
+
+// Получение нового сообщения
+socket.on('message:new', (message) => {
+    if (!currentUser) return; // Проверка на существование пользователя
+    if (message && message.author !== currentUser.name) {
+        addMessageToUI(message.author, message.text, message.time, false);
     }
+});
 
-    // Получение нового сообщения
-    socket.on('message:new', (message) => {
-        if (message.author !== currentUser.name) {
-            addMessageToUI(message.author, message.text, message.time, false);
-        }
-    });
+// Обновление онлайн счетчика
+socket.on('online:update', (count) => {
+    let el = document.getElementById('onlineCount');
+    if (el) el.innerText = count || 0;
+});
 
-    // Обновление онлайн счетчика
-    socket.on('online:update', (count) => {
-        document.getElementById('onlineCount').innerText = count;
-    });
+// Уведомления о подключении/отключении
+socket.on('user:joined', (userName) => {
+    if (!currentUser || !userName) return;
+    if (userName !== currentUser.name) {
+        addSystemMessage(`${userName} присоединился к чату`);
+    }
+});
 
-    // Уведомления о подключении/отключении
-    socket.on('user:joined', (userName) => {
-        if (userName !== currentUser.name) {
-            addSystemMessage(`${userName} присоединился к чату`);
-        }
-    });
+socket.on('user:left', (userName) => {
+    if (!currentUser || !userName) return;
+    if (userName !== currentUser.name) {
+        addSystemMessage(`${userName} покинул чат`);
+    }
+});
 
-    socket.on('user:left', (userName) => {
-        if (userName !== currentUser.name) {
-            addSystemMessage(`${userName} покинул чат`);
-        }
-    });
-
-    // Обновление списка пользователей
-    function updateUsersListSocket(users) {
-        let list = document.getElementById('usersList');
-        if (!list) return;
-        list.innerHTML = '';
+// Обновление списка пользователей
+function updateUsersListSocket(users) {
+    let list = document.getElementById('usersList');
+    if (!list) return;
+    list.innerHTML = '';
+    
+    // Проверяем, что users - массив и не пустой
+    if (Array.isArray(users) && users.length > 0) {
+        let fragment = document.createDocumentFragment(); // Для производительности
         users.forEach(user => {
-            let div = document.createElement('div');
-            div.className = 'user-item';
-            div.innerHTML = `<span class="user-status"></span> ${user.name}`;
-            list.appendChild(div);
+            if (user && user.name) { // Проверяем, что user существует и есть имя
+                let div = document.createElement('div');
+                div.className = 'user-item';
+                div.innerHTML = `<span class="user-status"></span> ${escapeHtml(user.name)}`; // Экранируем имя
+                fragment.appendChild(div);
+            }
         });
+        list.appendChild(fragment);
     }
+}
 
     // Закрытие попапов
     document.addEventListener('click', function(e) {
