@@ -2,13 +2,15 @@
   "name": "web-chat",
   "version": "1.0.0",
   "description": "Real-time chat application",
-  "main": "server.js",
+  "main": "script.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node script.js"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "socket.io": "^4.7.2"
+    "socket.io": "^4.7.2",
+    "mongoose": "^7.5.0",
+    "cors": "^2.8.5"
   },
   "engines": {
     "node": "18.x"
