@@ -2036,9 +2036,9 @@
         let currentUser = null;
         let currentRoom = 'main';
         let rooms = {
-            main: { name: 'Общая', type: 'public', password: null, users: [], messages: [], unread: 0 },
-            work: { name: 'Работа', type: 'public', password: null, users: [], messages: [], unread: 0 },
-            games: { name: 'Игры', type: 'public', password: null, users: [], messages: [], unread: 0 }
+            main: { name: 'Общая', type: 'public', password: null, users: [], messages: [], unread: 0, onlineCount: 0 },
+            work: { name: 'Работа', type: 'public', password: null, users: [], messages: [], unread: 0, onlineCount: 0 },
+            games: { name: 'Игры', type: 'public', password: null, users: [], messages: [], unread: 0, onlineCount: 0 }
         };
         let privateRooms = {};
         let friends = [];
@@ -2064,7 +2064,8 @@
         let socketUser = {
             name: 'Аноним',
             country: 'Россия',
-            avatar: '😊'
+            avatar: '😊',
+            avatarBackground: 'theme-default'
         };
         let socketCurrentRoom = 'main';
 
@@ -2122,7 +2123,8 @@
             socketUser = {
                 name: currentUser.name,
                 country: currentUser.country,
-                avatar: currentUser.avatar
+                avatar: currentUser.avatar,
+                avatarBackground: currentUser.avatarBackground
             };
             showChat();
         }
@@ -2162,7 +2164,8 @@
                 avatar: '😊',
                 avatarBackground: 'theme-default',
                 friendCode: 'TEST' + Math.floor(Math.random() * 1000),
-                isAdmin: false
+                isAdmin: false,
+                isDev: false
             };
             users.push(testUser);
             try {
@@ -2182,7 +2185,12 @@
                 }
             }
             currentUser = testUser;
-            socketUser = { name: testUser.name, country: testUser.country, avatar: testUser.avatar };
+            socketUser = { 
+                name: testUser.name, 
+                country: testUser.country, 
+                avatar: testUser.avatar,
+                avatarBackground: testUser.avatarBackground
+            };
             localStorage.setItem('currentSession', JSON.stringify(currentUser));
             showChat();
         }
@@ -2202,15 +2210,11 @@
                 return; 
             }
             
-            // Генерируем 6-значный код
             currentOtp = Math.floor(100000 + Math.random() * 900000).toString();
             
-            // В реальном проекте здесь был бы запрос к серверу для отправки email
-            // Для демо показываем код в консоли и alert
-            console.log('Ваш код подтверждения:', currentOtp);
-            alert(`Код подтверждения отправлен на ${email}\n(Для теста: ${currentOtp})`);
+            console.log('✅ Ваш код подтверждения:', currentOtp);
+            alert(`📧 Код подтверждения отправлен на ${email}\n\nДля теста: ${currentOtp}`);
             
-            // Показываем поле для ввода кода
             document.getElementById('otpSection').style.display = 'block';
         }
 
@@ -2233,10 +2237,9 @@
             let enteredOtp = otp1 + otp2 + otp3 + otp4 + otp5 + otp6;
             
             if (enteredOtp === currentOtp) {
-                // Код верный - завершаем регистрацию
                 completeRegistration();
             } else {
-                alert('Неверный код подтверждения');
+                alert('❌ Неверный код подтверждения');
             }
         }
 
@@ -2255,7 +2258,8 @@
                 avatar: '😊',
                 avatarBackground: 'theme-default',
                 friendCode: 'USR' + Math.floor(Math.random() * 1000),
-                isAdmin: false
+                isAdmin: false,
+                isDev: false
             };
             
             users.push(newUser);
@@ -2277,9 +2281,14 @@
             }
 
             currentUser = newUser;
-            socketUser = { name: newUser.name, country: newUser.country, avatar: newUser.avatar };
+            socketUser = { 
+                name: newUser.name, 
+                country: newUser.country, 
+                avatar: newUser.avatar,
+                avatarBackground: newUser.avatarBackground
+            };
             localStorage.setItem('currentSession', JSON.stringify(currentUser));
-            alert('Регистрация успешна!');
+            alert('✅ Регистрация успешна!');
             showChat();
         }
 
@@ -2287,9 +2296,14 @@
             let username = document.getElementById('loginUsername').value.trim();
             let password = document.getElementById('loginPassword').value;
             let user = users.find(u => u.username === username && u.password === password);
-            if (!user) { alert('Неверное имя или пароль'); return; }
+            if (!user) { alert('❌ Неверное имя или пароль'); return; }
             currentUser = user;
-            socketUser = { name: user.name, country: user.country, avatar: user.avatar };
+            socketUser = { 
+                name: user.name, 
+                country: user.country, 
+                avatar: user.avatar,
+                avatarBackground: user.avatarBackground
+            };
             localStorage.setItem('currentSession', JSON.stringify(currentUser));
             showChat();
         }
@@ -2424,6 +2438,8 @@
             element.classList.add('selected');
             currentUser.avatarBackground = theme;
             document.getElementById('avatar').style.background = getGradientByTheme(theme);
+            socketUser.avatarBackground = theme;
+            socket.emit('user:register', socketUser);
         }
 
         function getGradientByTheme(theme) {
@@ -2462,6 +2478,7 @@
                     currentUser.avatar = emoji;
                     socketUser.avatar = emoji;
                     document.getElementById('avatar').innerText = emoji;
+                    socket.emit('user:register', socketUser);
                 };
                 grid.appendChild(div);
             });
@@ -2473,6 +2490,9 @@
             document.getElementById('roomsTab').style.display = tab === 'rooms' ? 'block' : 'none';
             document.getElementById('countriesTab').style.display = tab === 'countries' ? 'block' : 'none';
             document.getElementById('friendsTab').style.display = tab === 'friends' ? 'block' : 'none';
+            if (tab === 'friends') {
+                socket.emit('friends:get');
+            }
         }
 
         function switchRoom(roomId, element) {
@@ -2483,9 +2503,10 @@
             if (!room) return;
             room.unread = 0;
             document.getElementById('currentRoomName').innerHTML = room.type === 'public' ? `💬 ${room.name}` : `🔒 ${room.name}`;
-            document.getElementById('onlineCount').innerText = room.users ? room.users.length : 0;
+            document.getElementById('onlineCount').innerText = room.onlineCount || 0;
             updateUsersPopup(room.users || []);
             loadRoomMessages(roomId);
+            joinRoomSocket(roomId);
         }
 
         function updateUsersPopup(users) {
@@ -2506,7 +2527,6 @@
             let room = rooms[roomId] || privateRooms[roomId];
             
             if (room && room.messages && room.messages.length > 0) {
-                // Сортируем сообщения по времени
                 let sortedMessages = [...room.messages].sort((a, b) => {
                     if (a.timestamp && b.timestamp) {
                         return new Date(a.timestamp) - new Date(b.timestamp);
@@ -2550,14 +2570,15 @@
                     password: null, 
                     users: [], 
                     messages: [], 
-                    unread: 0 
+                    unread: 0,
+                    onlineCount: 0
                 };
             }
             
             currentRoom = roomId;
             document.querySelectorAll('.room-item').forEach(el => el.classList.remove('active'));
             document.getElementById('currentRoomName').innerHTML = `🌍 ${rooms[roomId].name}`;
-            document.getElementById('onlineCount').innerText = rooms[roomId].users.length;
+            document.getElementById('onlineCount').innerText = rooms[roomId].onlineCount || 0;
             
             updateUsersPopup(rooms[roomId].users);
             loadRoomMessages(roomId);
@@ -2792,24 +2813,10 @@
         function toggleReaction(messageId, emoji) {
             if (!currentUser) return;
             
-            if (!messageReactions[messageId]) messageReactions[messageId] = {};
-            if (!messageReactions[messageId][emoji]) messageReactions[messageId][emoji] = [];
-            
-            let index = messageReactions[messageId][emoji].indexOf(currentUser.name);
-            if (index === -1) {
-                messageReactions[messageId][emoji].push(currentUser.name);
-            } else {
-                messageReactions[messageId][emoji].splice(index, 1);
-                if (messageReactions[messageId][emoji].length === 0) {
-                    delete messageReactions[messageId][emoji];
-                }
-            }
-            
-            if (Object.keys(messageReactions[messageId]).length === 0) {
-                delete messageReactions[messageId];
-            }
-            
-            updateReactions(messageId);
+            socket.emit('reaction:add', {
+                messageId: messageId,
+                emoji: emoji
+            });
         }
 
         function updateReactions(messageId) {
@@ -2876,53 +2883,23 @@
             let pass = document.getElementById('roomPasswordInput').value.trim();
             let t = translations[currentLanguage];
             if (!name || !pass) { alert('Введите название и пароль'); return; }
-            let id = 'priv_' + Date.now();
-            privateRooms[id] = { 
-                name, 
-                password: pass, 
-                type: 'private', 
-                users: [{ 
-                    name: currentUser.name, 
-                    avatar: currentUser.avatar, 
-                    online: true,
-                    avatarBackground: currentUser.avatarBackground
-                }], 
-                messages: [] 
-            };
-            addPrivateRoomToSidebar(id, name);
+            
+            socket.emit('room:create', { name, password });
+            
             closePrivateModal();
             document.getElementById('roomNameInput').value = '';
             document.getElementById('roomPasswordInput').value = '';
-            alert(t.roomCreated);
-            let element = document.querySelector(`[data-roomid="${id}"]`);
-            if (element) switchPrivateRoom(id, element);
         }
 
         function joinPrivateRoom() {
             let name = document.getElementById('roomNameInput').value.trim();
             let pass = document.getElementById('roomPasswordInput').value.trim();
-            let t = translations[currentLanguage];
-            for (let id in privateRooms) {
-                if (privateRooms[id].name === name && privateRooms[id].password === pass) {
-                    if (!privateRooms[id].users.some(u => u.name === currentUser.name)) {
-                        privateRooms[id].users.push({ 
-                            name: currentUser.name, 
-                            avatar: currentUser.avatar, 
-                            online: true,
-                            avatarBackground: currentUser.avatarBackground
-                        });
-                    }
-                    addPrivateRoomToSidebar(id, name);
-                    closePrivateModal();
-                    document.getElementById('roomNameInput').value = '';
-                    document.getElementById('roomPasswordInput').value = '';
-                    alert(t.roomJoined);
-                    let element = document.querySelector(`[data-roomid="${id}"]`);
-                    if (element) switchPrivateRoom(id, element);
-                    return;
-                }
-            }
-            alert(t.roomNotFound);
+            
+            socket.emit('room:joinPrivate', { name, password });
+            
+            closePrivateModal();
+            document.getElementById('roomNameInput').value = '';
+            document.getElementById('roomPasswordInput').value = '';
         }
 
         function addPrivateRoomToSidebar(id, name) {
@@ -2932,7 +2909,7 @@
             let div = document.createElement('div');
             div.className = 'room-item';
             div.setAttribute('data-roomid', id);
-            div.innerHTML = `🔒 ${name} <span class="room-users">(👥 ${privateRooms[id].users.length})</span> <button class="delete-room-btn" onclick="deletePrivateRoom('${id}', event)">✖</button>`;
+            div.innerHTML = `🔒 ${name} <span class="room-users">(👥 0)</span> <button class="delete-room-btn" onclick="deletePrivateRoom('${id}', event)">✖</button>`;
             div.onclick = (e) => {
                 if (e.target.tagName !== 'BUTTON') switchPrivateRoom(id, div);
             };
@@ -2997,30 +2974,51 @@
                 return; 
             }
             
-            let foundUser = users.find(u => u.friendCode === code);
-            if (!foundUser) { 
-                status.innerText = t.userNotFound; 
-                status.className = 'status-error';
-                return; 
-            }
-            
-            if (sentRequests.some(r => r.code === code)) { 
-                status.innerText = t.alreadySent; 
-                status.className = 'status-error';
-                return; 
-            }
-            
-            sentRequests.push({ code, name: foundUser.name, avatar: foundUser.avatar });
-            status.innerText = t.requestSent;
-            status.className = 'status-success';
-            
-            setTimeout(() => {
-                if (!friendRequests.some(r => r.code === code)) {
-                    friendRequests.push({ name: foundUser.name, avatar: foundUser.avatar, code });
-                    updateFriendRequests();
-                }
-            }, 2000);
+            socket.emit('friend:request', code);
+            status.innerText = 'Отправка...';
+            status.className = 'status-info';
         }
+
+        socket.on('friend:requestSent', (data) => {
+            let status = document.getElementById('friendRequestStatus');
+            status.innerText = '✅ Запрос отправлен!';
+            status.className = 'status-success';
+            setTimeout(closeAddFriendModal, 1500);
+        });
+
+        socket.on('friend:request', (data) => {
+            friendRequests.push({
+                fromId: data.fromId,
+                name: data.fromName,
+                avatar: data.fromAvatar,
+                code: data.fromCode,
+                requestId: data.requestId
+            });
+            updateFriendRequests();
+            addSystemMessage(`📨 Новый запрос в друзья от ${data.fromName}`);
+        });
+
+        socket.on('friend:accepted', (data) => {
+            friends.push({
+                id: data.id,
+                name: data.name,
+                avatar: data.avatar,
+                online: true
+            });
+            updateFriendsList();
+            addSystemMessage(`✅ ${data.name} принял ваш запрос в друзья`);
+        });
+
+        socket.on('friend:error', (message) => {
+            let status = document.getElementById('friendRequestStatus');
+            status.innerText = message;
+            status.className = 'status-error';
+        });
+
+        socket.on('friends:list', (friendsList) => {
+            friends = friendsList;
+            updateFriendsList();
+        });
 
         function updateFriendRequests() {
             let div = document.getElementById('friendRequests');
@@ -3044,31 +3042,44 @@
 
         function acceptRequest(i) {
             let req = friendRequests[i];
-            friends.push({ ...req, online: true, lastSeen: 'только что' });
+            
+            socket.emit('friend:accept', {
+                fromId: req.fromId,
+                fromName: req.name,
+                fromAvatar: req.avatar,
+                requestId: req.requestId
+            });
+            
             friendRequests.splice(i, 1);
             updateFriendRequests();
-            updateFriendsList();
         }
 
-        function declineRequest(i) { friendRequests.splice(i, 1); updateFriendRequests(); }
+        function declineRequest(i) { 
+            let req = friendRequests[i];
+            socket.emit('friend:decline', { requestId: req.requestId });
+            friendRequests.splice(i, 1); 
+            updateFriendRequests(); 
+        }
 
         function updateFriendsList() {
             let div = document.getElementById('friendsList');
             let t = translations[currentLanguage];
-            if (!friends.length) { div.innerHTML = `<div style="text-align:center;padding:20px">${t.noFriends}</div>`; return; }
+            if (!friends.length) { 
+                div.innerHTML = `<div style="text-align:center;padding:20px">${t.noFriends}</div>`; 
+                return; 
+            }
             div.innerHTML = '';
             friends.forEach((f, i) => {
                 div.innerHTML += `
                     <div class="friend-item">
-                        <div class="friend-avatar ${f.online ? 'online' : ''}">${f.avatar}</div>
+                        <div class="friend-avatar ${f.online ? 'online' : ''}" style="background: ${getGradientByTheme(f.avatarBackground || 'theme-default')}">${f.avatar}</div>
                         <div class="friend-info">
                             <div class="friend-name">${f.name}</div>
-                            <div class="friend-status ${f.online ? '' : 'offline'}">${f.online ? '🟢 ' + t.online : '⚫ ' + t.offline}</div>
+                            <div class="friend-status ${f.online ? '' : 'offline'}">${f.online ? '🟢 ' + t.online : '⚫ офлайн'}</div>
                         </div>
                         <div class="friend-actions">
                             <button class="friend-action-btn message" onclick="openPrivateChat(${i})">💬</button>
                             <button class="friend-action-btn delete" onclick="deleteFriend(${i})">🗑️</button>
-                            <button class="friend-action-btn ban" onclick="banFriend(${i})">⛔</button>
                         </div>
                     </div>
                 `;
@@ -3076,38 +3087,6 @@
         }
 
         function deleteFriend(i) { friends.splice(i, 1); updateFriendsList(); }
-
-        function banFriend(i) {
-            let banned = friends[i];
-            blacklist.push(banned);
-            friends.splice(i, 1);
-            updateFriendsList();
-            updateBlacklist();
-        }
-
-        function updateBlacklist() {
-            let div = document.getElementById('blacklist');
-            let t = translations[currentLanguage];
-            if (!blacklist.length) { div.innerHTML = ''; return; }
-            div.innerHTML = '<div class="rooms-title">' + t.blacklist + '</div>';
-            blacklist.forEach((u, i) => {
-                div.innerHTML += `
-                    <div class="friend-item">
-                        <div class="friend-avatar">${u.avatar}</div>
-                        <div class="friend-name">${u.name}</div>
-                        <button class="friend-action-btn" onclick="unbanUser(${i})">↩️</button>
-                    </div>
-                `;
-            });
-        }
-
-        function unbanUser(i) {
-            let unbanned = blacklist[i];
-            friends.push({ ...unbanned, online: false, lastSeen: 'разблокирован' });
-            blacklist.splice(i, 1);
-            updateFriendsList();
-            updateBlacklist();
-        }
 
         let currentPrivateChat = null;
         function openPrivateChat(i) {
@@ -3150,61 +3129,36 @@
                     return;
                 }
                 
-                // Обновляем список пользователей в комнате
                 if (data && data.users) {
                     let room = rooms[roomId] || privateRooms[roomId];
                     if (room) {
                         room.users = data.users;
+                        room.onlineCount = data.onlineCount || data.users.length;
                     }
                     updateUsersPopup(data.users);
+                    document.getElementById('onlineCount').innerText = room.onlineCount || 0;
                 }
                 
-                // Загружаем сообщения из памяти, если они есть
-                let room = rooms[roomId] || privateRooms[roomId];
-                if (room && room.messages && room.messages.length > 0) {
-                    let messagesArea = document.getElementById('messagesArea');
-                    messagesArea.innerHTML = '';
-                    
-                    let sortedMessages = [...room.messages].sort((a, b) => {
-                        if (a.timestamp && b.timestamp) {
-                            return new Date(a.timestamp) - new Date(b.timestamp);
-                        }
-                        return (a.id || '').toString().localeCompare(b.id || '');
-                    });
-                    
-                    sortedMessages.forEach(msg => {
-                        if (msg.isTemp) return;
-                        addMessageToUI(
-                            msg.author, 
-                            msg.text, 
-                            msg.time, 
-                            msg.author === currentUser?.name, 
-                            msg.avatarBg, 
-                            msg.id, 
-                            msg.reactions,
-                            msg.avatar
-                        );
-                    });
-                } else {
-                    addSystemMessage(translations[currentLanguage].welcome);
+                if (data && data.messages) {
+                    let room = rooms[roomId] || privateRooms[roomId];
+                    if (room) {
+                        room.messages = data.messages;
+                    }
+                    loadRoomMessages(roomId);
                 }
-                
-                let onlineEl = document.getElementById('onlineCount');
-                if (onlineEl) onlineEl.innerText = (data && data.users && data.users.length) ? data.users.length : 0;
             });
         }
 
         socket.on('message:new', (message) => {
             if (!currentUser) return;
             
-            // Сохраняем сообщение в памяти комнаты
             let room = rooms[message.roomId] || privateRooms[message.roomId];
             if (room) {
                 if (!room.messages) room.messages = [];
                 room.messages.push(message);
             }
             
-            if (message.author !== currentUser.name) {
+            if (message.author !== currentUser.name && message.roomId === currentRoom) {
                 addMessageToUI(
                     message.author, 
                     message.text, 
@@ -3229,7 +3183,6 @@
                     deleteBtn.setAttribute('onclick', `deleteMessage('${data.realId}', event)`);
                 }
                 
-                // Обновляем ID в массиве сообщений
                 let room = rooms[currentRoom] || privateRooms[currentRoom];
                 if (room && room.messages) {
                     let tempIndex = room.messages.findIndex(m => m.id === data.tempId);
@@ -3244,12 +3197,15 @@
         socket.on('online:update', (count) => {
             let el = document.getElementById('onlineCount');
             if (el) el.innerText = count || 0;
+            if (rooms[currentRoom]) {
+                rooms[currentRoom].onlineCount = count;
+            }
         });
 
-        socket.on('user:joined', (userName) => {
-            if (!currentUser || !userName) return;
-            if (userName !== currentUser.name) {
-                addSystemMessage(`${userName} присоединился к чату`);
+        socket.on('user:joined', (data) => {
+            if (!currentUser || !data) return;
+            if (data.name !== currentUser.name) {
+                addSystemMessage(`${data.name} присоединился к чату`);
             }
         });
 
@@ -3275,6 +3231,43 @@
             if (messageReactions[messageId]) {
                 delete messageReactions[messageId];
             }
+        });
+
+        socket.on('reaction:update', (data) => {
+            const { messageId, emoji, users } = data;
+            
+            if (!messageReactions[messageId]) messageReactions[messageId] = {};
+            messageReactions[messageId][emoji] = users;
+            
+            let reactionsDiv = document.getElementById(`reactions-${messageId}`);
+            if (reactionsDiv) {
+                let userReacted = users.includes(currentUser.name);
+                reactionsDiv.innerHTML += `<span class="reaction-btn ${userReacted ? 'active' : ''}" onclick="toggleReaction(${messageId}, '${emoji}')">${emoji} <span class="reaction-count">${users.length}</span></span>`;
+            }
+        });
+
+        socket.on('room:created', (data) => {
+            addPrivateRoomToSidebar(data.id, data.name);
+            alert('✅ Комната создана!');
+        });
+
+        socket.on('room:joined', (data) => {
+            if (!privateRooms[data.id]) {
+                privateRooms[data.id] = {
+                    name: data.name,
+                    type: 'private',
+                    users: [],
+                    messages: [],
+                    onlineCount: 0
+                };
+            }
+            addPrivateRoomToSidebar(data.id, data.name);
+            let element = document.querySelector(`[data-roomid="${data.id}"]`);
+            if (element) switchPrivateRoom(data.id, element);
+        });
+
+        socket.on('room:error', (message) => {
+            alert('❌ ' + message);
         });
 
         function updateUsersListSocket(users) {
@@ -3421,7 +3414,7 @@
             
             room.messages = room.messages.filter(msg => msg.author !== username);
             
-            alert(`Удалено ${userMessages.length} сообщений`);
+            alert(`✅ Удалено ${userMessages.length} сообщений`);
             updateDevUsersList();
         }
     </script>
