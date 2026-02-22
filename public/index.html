@@ -2412,27 +2412,40 @@
             });
         }
 
-        function loadRoomMessages(roomId) {
-            let area = document.getElementById('messagesArea');
-            area.innerHTML = '';
-            let room = rooms[roomId] || privateRooms[roomId];
-            if (room && room.messages && room.messages.length) {
-                room.messages.forEach(msg => {
-                    addMessageToUI(
-                        msg.author, 
-                        msg.text, 
-                        msg.time, 
-                        msg.author === currentUser.name, 
-                        msg.avatarBg, 
-                        msg.id, 
-                        msg.reactions,
-                        msg.avatar
-                    );
-                });
-            } else {
-                addSystemMessage(translations[currentLanguage].welcome);
+function loadRoomMessages(roomId) {
+    let area = document.getElementById('messagesArea');
+    area.innerHTML = '';
+    let room = rooms[roomId] || privateRooms[roomId];
+    
+    if (room && room.messages && room.messages.length > 0) {
+        // Сортируем сообщения по времени (если есть timestamp)
+        let sortedMessages = [...room.messages].sort((a, b) => {
+            if (a.timestamp && b.timestamp) {
+                return new Date(a.timestamp) - new Date(b.timestamp);
             }
-        }
+            // Если нет timestamp, используем id (для старых сообщений)
+            return (a.id || '').toString().localeCompare(b.id || '');
+        });
+        
+        sortedMessages.forEach(msg => {
+            // Не показываем временные сообщения при загрузке (они уже могли быть заменены)
+            if (msg.isTemp) return;
+            
+            addMessageToUI(
+                msg.author, 
+                msg.text, 
+                msg.time, 
+                msg.author === currentUser.name, 
+                msg.avatarBg, 
+                msg.id, 
+                msg.reactions,
+                msg.avatar
+            );
+        });
+    } else {
+        addSystemMessage(translations[currentLanguage].welcome);
+    }
+}
 
         function switchCountry(country) {
             let roomId = 'country_' + country;
@@ -2466,32 +2479,53 @@
             joinRoomSocket(roomId);
         }
 
-        function sendMessage() {
-            let input = document.getElementById('messageInput');
-            let text = input.value.trim();
-            if (!text) return;
-            
-            let time = new Date().toLocaleTimeString();
-            let tempId = 'temp_' + Date.now();
-            
-            addMessageToUI(
-                currentUser.name, 
-                text, 
-                time, 
-                true, 
-                currentUser.avatarBackground, 
-                tempId, 
-                {}, 
-                currentUser.avatar
-            );
-            
-            input.value = '';
-            
-            socket.emit('message:send', { 
-                text, 
-                tempId: tempId
-            });
-        }
+   function sendMessage() {
+    let input = document.getElementById('messageInput');
+    let text = input.value.trim();
+    if (!text) return;
+    
+    let time = new Date().toLocaleTimeString();
+    let tempId = 'temp_' + Date.now() + '_' + Math.random(); // Уникальный tempId
+    
+    // Временное сообщение
+    let tempMessage = {
+        id: tempId,
+        author: currentUser.name,
+        text: text,
+        time: time,
+        avatarBg: currentUser.avatarBackground,
+        avatar: currentUser.avatar,
+        reactions: {},
+        isTemp: true
+    };
+    
+    // Добавляем в локальный массив сообщений
+    let room = rooms[currentRoom] || privateRooms[currentRoom];
+    if (room) {
+        if (!room.messages) room.messages = [];
+        room.messages.push(tempMessage);
+    }
+    
+    // Показываем в UI
+    addMessageToUI(
+        currentUser.name, 
+        text, 
+        time, 
+        true, 
+        currentUser.avatarBackground, 
+        tempId, 
+        {}, 
+        currentUser.avatar
+    );
+    
+    input.value = '';
+    
+    // Отправляем на сервер
+    socket.emit('message:send', { 
+        text: text,
+        tempId: tempId
+    });
+}
 
         function addMessageToUI(author, text, time, isOwn, avatarBg, messageId, reactions, authorAvatar) {
             let area = document.getElementById('messagesArea');
@@ -2580,42 +2614,59 @@
             area.appendChild(div);
         }
 
-        function deleteMessage(messageId, event) {
-            if (event) {
-                event.preventDefault();
-                event.stopPropagation();
-            }
-            
-            if (!currentUser) return;
-            
-            let messageElement = document.getElementById(`msg-${messageId}`);
-            if (!messageElement) return;
-            
-            let author = messageElement.getAttribute('data-author');
-            
-            if (author !== currentUser.name && !currentUser.isAdmin && !currentUser.isDev) {
-                alert('Вы можете удалять только свои сообщения');
-                return;
-            }
-            
-            if (confirm('Удалить это сообщение?')) {
-                let room = rooms[currentRoom] || privateRooms[currentRoom];
-                if (room && room.messages) {
-                    room.messages = room.messages.filter(msg => msg.id != messageId && !msg.id.includes('temp_'));
-                }
-                
-                if (messageReactions[messageId]) {
-                    delete messageReactions[messageId];
-                }
-                
-                messageElement.remove();
-                
-                socket.emit('message:delete', {
-                    messageId: messageId,
-                    roomId: currentRoom
-                });
-            }
+   function deleteMessage(messageId, event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
+    if (!currentUser) return;
+    
+    // Не даём удалять временные сообщения
+    if (messageId.toString().startsWith('temp_')) {
+        alert('Подождите, сообщение ещё отправляется...');
+        return;
+    }
+    
+    let messageElement = document.getElementById(`msg-${messageId}`);
+    if (!messageElement) {
+        // Если элемент не найден по новому ID, ищем по старому (на всякий случай)
+        messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+    }
+    
+    if (!messageElement) return;
+    
+    let author = messageElement.getAttribute('data-author');
+    
+    if (author !== currentUser.name && !currentUser.isAdmin && !currentUser.isDev) {
+        alert('Вы можете удалять только свои сообщения');
+        return;
+    }
+    
+    if (confirm('Удалить это сообщение?')) {
+        // Удаляем из DOM
+        messageElement.remove();
+        
+        // Удаляем из массива сообщений комнаты
+        let room = rooms[currentRoom] || privateRooms[currentRoom];
+        if (room && room.messages) {
+            room.messages = room.messages.filter(msg => 
+                msg.id != messageId && !msg.id.toString().startsWith('temp_')
+            );
         }
+        
+        // Удаляем из реакций
+        if (messageReactions[messageId]) {
+            delete messageReactions[messageId];
+        }
+        
+        // Отправляем на сервер
+        socket.emit('message:delete', {
+            messageId: messageId,
+            roomId: currentRoom
+        });
+    }
+}
 
         function showDeleteMenuForMessage(e, messageId, author) {
             if (!currentUser) return;
@@ -3058,54 +3109,42 @@
             }
         });
 
-        socket.on('message:saved', (data) => {
-            let tempElement = document.getElementById(`msg-${data.tempId}`);
-            if (tempElement) {
-                tempElement.id = `msg-${data.realId}`;
-                tempElement.setAttribute('data-message-id', data.realId);
-                
-                let deleteBtn = tempElement.querySelector('.delete-message-btn');
-                if (deleteBtn) {
-                    deleteBtn.setAttribute('onclick', `deleteMessage('${data.realId}', event)`);
-                }
-            }
-        });
-
-        socket.on('online:update', (count) => {
-            let el = document.getElementById('onlineCount');
-            if (el) el.innerText = count || 0;
-        });
-
-        socket.on('user:joined', (userName) => {
-            if (!currentUser || !userName) return;
-            if (userName !== currentUser.name) {
-                addSystemMessage(`${userName} присоединился к чату`);
-            }
-        });
-
-        socket.on('user:left', (userName) => {
-            if (!currentUser || !userName) return;
-            if (userName !== currentUser.name) {
-                addSystemMessage(`${userName} покинул чат`);
-            }
-        });
-
-        socket.on('message:deleted', (data) => {
-            const { messageId } = data;
-            let messageElement = document.getElementById(`msg-${messageId}`);
-            if (messageElement) {
-                messageElement.remove();
-            }
+   socket.on('message:saved', (data) => {
+    // Находим временное сообщение в DOM
+    let tempElement = document.getElementById(`msg-${data.tempId}`);
+    if (!tempElement) return;
+    
+    // Обновляем ID в DOM
+    tempElement.id = `msg-${data.realId}`;
+    tempElement.setAttribute('data-message-id', data.realId);
+    
+    // Обновляем кнопку удаления
+    let deleteBtn = tempElement.querySelector('.delete-message-btn');
+    if (deleteBtn) {
+        deleteBtn.setAttribute('onclick', `deleteMessage('${data.realId}', event)`);
+    }
+    
+    // Обновляем ID в массиве сообщений
+    let room = rooms[currentRoom] || privateRooms[currentRoom];
+    if (room && room.messages) {
+        let tempMessageIndex = room.messages.findIndex(msg => msg.id === data.tempId);
+        if (tempMessageIndex !== -1) {
+            // Создаём копию сообщения с правильным ID
+            let realMessage = { ...room.messages[tempMessageIndex] };
+            realMessage.id = data.realId;
+            delete realMessage.isTemp;
             
-            let room = rooms[currentRoom] || privateRooms[currentRoom];
-            if (room && room.messages) {
-                room.messages = room.messages.filter(msg => msg.id != messageId);
-            }
-            
-            if (messageReactions[messageId]) {
-                delete messageReactions[messageId];
-            }
-        });
+            // Заменяем временное сообщение на реальное
+            room.messages[tempMessageIndex] = realMessage;
+        }
+    }
+    
+    // Обновляем реакции, если они были
+    if (messageReactions[data.tempId]) {
+        messageReactions[data.realId] = messageReactions[data.tempId];
+        delete messageReactions[data.tempId];
+    }
+});
 
         function updateUsersListSocket(users) {
             let list = document.getElementById('usersList');
