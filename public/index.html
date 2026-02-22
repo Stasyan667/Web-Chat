@@ -22,7 +22,6 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
-        /* Адаптивность */
         @media (max-width: 768px) {
             body { padding: 5px; }
             .auth-container { padding: 20px; }
@@ -32,7 +31,6 @@
             .emoji-picker { grid-template-columns: repeat(6, 1fr); right: 10px; }
         }
 
-        /* Страница входа */
         .auth-container {
             width: 100%;
             max-width: 400px;
@@ -181,7 +179,6 @@
             cursor: pointer;
         }
 
-        /* Модальное окно с правилами */
         .terms-modal {
             display: none;
             position: fixed;
@@ -242,7 +239,6 @@
             margin-top: 20px;
         }
 
-        /* Основное приложение */
         .chat-app {
             width: 100%;
             max-width: 1400px;
@@ -260,7 +256,6 @@
             display: flex;
         }
 
-        /* Темы */
         body.theme-default { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
         body.theme-dark { background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%); }
         body.theme-space { background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%); }
@@ -314,9 +309,11 @@
             transition: all 0.3s;
             position: relative;
         }
+
         .avatar:hover {
             transform: scale(1.1);
         }
+
         .avatar.online::after {
             content: '';
             position: absolute;
@@ -333,6 +330,7 @@
             font-size: 16px;
             color: #333;
         }
+
         .profile-info p {
             font-size: 13px;
             color: #666;
@@ -350,6 +348,7 @@
             font-size: 14px;
             transition: all 0.3s;
         }
+
         .edit-profile-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
@@ -365,6 +364,7 @@
             max-height: 400px;
             overflow-y: auto;
         }
+
         .profile-settings.show {
             display: block;
         }
@@ -372,6 +372,7 @@
         .settings-group {
             margin-bottom: 15px;
         }
+
         .settings-group label {
             display: block;
             font-size: 12px;
@@ -379,6 +380,7 @@
             margin-bottom: 5px;
             font-weight: 600;
         }
+
         .settings-group input, .settings-group select {
             width: 100%;
             padding: 10px;
@@ -400,12 +402,12 @@
             transition: all 0.3s;
             margin-top: 10px;
         }
+
         .logout-settings-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(220, 53, 69, 0.3);
         }
 
-        /* Эмодзи для аватарки - УЛУЧШЕНО */
         .emoji-section {
             margin-bottom: 20px;
             padding: 15px;
@@ -413,6 +415,7 @@
             border-radius: 12px;
             border: 2px solid #eef2f6;
         }
+
         .emoji-title {
             font-size: 15px;
             font-weight: 700;
@@ -420,12 +423,14 @@
             margin-bottom: 15px;
             text-align: center;
         }
+
         .emoji-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
             gap: 10px;
             justify-items: center;
         }
+
         .emoji-item {
             width: 50px;
             height: 50px;
@@ -440,23 +445,25 @@
             border: 2px solid transparent;
             box-shadow: 0 3px 8px rgba(0,0,0,0.1);
         }
+
         .emoji-item:hover {
             background: #667eea;
             transform: scale(1.15);
             box-shadow: 0 8px 15px rgba(102, 126, 234, 0.3);
         }
+
         .emoji-item.selected {
             border-color: #667eea;
             background: #e8f0fe;
             transform: scale(1.1);
         }
 
-        /* Фоны для аватарки */
         .bg-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 5px;
         }
+
         .bg-item {
             height: 40px;
             border-radius: 8px;
@@ -464,13 +471,16 @@
             border: 2px solid transparent;
             transition: all 0.2s;
         }
+
         .bg-item:hover {
             transform: scale(1.05);
         }
+
         .bg-item.selected {
             border-color: #667eea;
             box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.3);
         }
+
         .bg-item.theme-default { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
         .bg-item.theme-dark { background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%); }
         .bg-item.theme-space { background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%); }
@@ -510,6 +520,7 @@
             font-size: 14px;
             transition: all 0.3s;
         }
+
         .save-settings:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
@@ -521,6 +532,7 @@
             gap: 8px;
             border-bottom: 1px solid rgba(230, 233, 240, 0.5);
         }
+
         .tab {
             padding: 8px 16px;
             cursor: pointer;
@@ -531,13 +543,16 @@
             transition: all 0.3s;
             position: relative;
         }
+
         .tab:hover {
             background: #e8ebf2;
         }
+
         .tab.active {
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
         }
+
         .tab .unread-badge {
             position: absolute;
             top: -5px;
@@ -562,6 +577,7 @@
             flex-direction: column;
             gap: 5px;
         }
+
         .room-item {
             display: flex;
             align-items: center;
@@ -576,17 +592,21 @@
             border: 1px solid rgba(230, 233, 240, 0.5);
             position: relative;
         }
+
         .room-item:hover {
             background: #e8ebf2;
             transform: translateX(5px);
         }
+
         .room-item.active {
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
         }
+
         .room-item.active .delete-room-btn {
             color: white;
         }
+
         .room-item .unread-badge {
             position: absolute;
             top: -5px;
@@ -604,6 +624,7 @@
             margin-left: auto;
             margin-right: 5px;
         }
+
         .room-item.active .room-users {
             color: white;
         }
@@ -623,11 +644,13 @@
             transition: all 0.2s;
             margin-right: 5px;
         }
+
         .room-settings-btn:hover {
             background: #667eea;
             color: white;
             transform: scale(1.1);
         }
+
         .room-item.active .room-settings-btn {
             color: white;
         }
@@ -646,6 +669,7 @@
             justify-content: center;
             transition: all 0.2s;
         }
+
         .delete-room-btn:hover {
             background: #dc3545;
             color: white;
@@ -665,25 +689,30 @@
             border: 2px solid transparent;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
+
         .country-server:hover {
             border-color: #667eea;
             transform: translateX(5px);
             box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
         }
+
         .country-flag {
             font-size: 40px;
             min-width: 50px;
             text-align: center;
         }
+
         .country-info {
             flex: 1;
         }
+
         .country-name {
             font-weight: 700;
             color: #333;
             font-size: 16px;
             margin-bottom: 4px;
         }
+
         .country-online {
             font-size: 13px;
             color: #28a745;
@@ -698,12 +727,14 @@
             justify-content: space-between;
             margin-bottom: 15px;
         }
+
         .friends-title {
             font-size: 12px;
             color: #aaa;
             font-weight: 600;
             letter-spacing: 0.5px;
         }
+
         .add-friend-btn {
             background: linear-gradient(135deg, #28a745, #20c997);
             color: white;
@@ -715,6 +746,7 @@
             cursor: pointer;
             transition: all 0.3s;
         }
+
         .add-friend-btn:hover {
             transform: scale(1.05);
             box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
@@ -732,9 +764,11 @@
             transition: all 0.3s;
             position: relative;
         }
+
         .friend-item:hover {
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
+
         .friend-avatar {
             width: 45px;
             height: 45px;
@@ -746,6 +780,7 @@
             cursor: pointer;
             position: relative;
         }
+
         .friend-avatar.online::after {
             content: '';
             position: absolute;
@@ -757,25 +792,31 @@
             border-radius: 50%;
             border: 2px solid white;
         }
+
         .friend-info {
             flex: 1;
         }
+
         .friend-name {
             font-weight: 600;
             font-size: 15px;
             margin-bottom: 4px;
         }
+
         .friend-status {
             font-size: 12px;
             color: #28a745;
         }
+
         .friend-status.offline {
             color: #999;
         }
+
         .friend-actions {
             display: flex;
             gap: 5px;
         }
+
         .friend-action-btn {
             width: 30px;
             height: 30px;
@@ -787,20 +828,25 @@
             transition: all 0.2s;
             font-size: 14px;
         }
+
         .friend-action-btn:hover {
             background: #667eea;
             color: white;
             transform: scale(1.1);
         }
+
         .friend-action-btn.delete:hover {
             background: #dc3545;
         }
+
         .friend-action-btn.ban:hover {
             background: #ff6b6b;
         }
+
         .friend-action-btn.message:hover {
             background: #28a745;
         }
+
         .friend-typing {
             font-size: 11px;
             color: #667eea;
@@ -818,10 +864,12 @@
             gap: 12px;
             animation: slideIn 0.3s;
         }
+
         .request-buttons {
             display: flex;
             gap: 8px;
         }
+
         .accept-btn, .decline-btn {
             padding: 5px 12px;
             border: none;
@@ -831,18 +879,22 @@
             cursor: pointer;
             transition: all 0.3s;
         }
+
         .accept-btn {
             background: #28a745;
             color: white;
         }
+
         .accept-btn:hover {
             transform: scale(1.05);
             box-shadow: 0 3px 10px rgba(40, 167, 69, 0.3);
         }
+
         .decline-btn {
             background: #dc3545;
             color: white;
         }
+
         .decline-btn:hover {
             transform: scale(1.05);
             box-shadow: 0 3px 10px rgba(220, 53, 69, 0.3);
@@ -861,6 +913,7 @@
             font-size: 14px;
             transition: all 0.3s;
         }
+
         .private-room-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(108, 92, 231, 0.3);
@@ -886,15 +939,18 @@
             align-items: center;
             gap: 10px;
         }
+
         .room-info h2 {
             font-size: 20px;
             color: #333;
         }
+
         .room-info p {
             font-size: 13px;
             color: #666;
             margin-top: 5px;
         }
+
         .room-info-settings {
             width: 30px;
             height: 30px;
@@ -906,6 +962,7 @@
             font-size: 16px;
             transition: all 0.3s;
         }
+
         .room-info-settings:hover {
             background: #667eea;
             color: white;
@@ -925,6 +982,7 @@
             margin-right: 50px;
             transition: all 0.3s;
         }
+
         .online-counter:hover {
             background: #c8e6c9;
             transform: translateY(-2px);
@@ -942,9 +1000,11 @@
             z-index: 1000;
             animation: fadeIn 0.3s;
         }
+
         .users-popup.show {
             display: block;
         }
+
         .users-popup-header {
             padding: 15px;
             border-bottom: 1px solid #eee;
@@ -953,11 +1013,13 @@
             justify-content: space-between;
             align-items: center;
         }
+
         .users-list {
             max-height: 350px;
             overflow-y: auto;
             padding: 10px;
         }
+
         .popup-user-item {
             display: flex;
             align-items: center;
@@ -967,6 +1029,7 @@
             margin-bottom: 5px;
             background: #f8f9fa;
         }
+
         .popup-user-avatar {
             width: 35px;
             height: 35px;
@@ -976,17 +1039,21 @@
             justify-content: center;
             font-size: 16px;
         }
+
         .popup-user-info {
             flex: 1;
         }
+
         .popup-user-name {
             font-weight: 600;
             font-size: 13px;
         }
+
         .popup-user-status {
             font-size: 11px;
             color: #28a745;
         }
+
         .popup-user-status.offline {
             color: #999;
         }
@@ -1009,10 +1076,12 @@
             animation: fadeIn 0.3s;
             position: relative;
         }
+
         .message.own {
             align-self: flex-end;
             flex-direction: row-reverse;
         }
+
         .message-avatar {
             width: 40px;
             height: 40px;
@@ -1025,6 +1094,7 @@
             position: relative;
             transition: all 0.3s;
         }
+
         .message-avatar.online::after {
             content: '';
             position: absolute;
@@ -1036,15 +1106,20 @@
             border-radius: 50%;
             border: 2px solid white;
         }
+
         .message-content {
             background: white;
             padding: 12px 16px;
             border-radius: 18px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            position: relative;
+            padding-right: 40px;
         }
+
         .message.own .message-content {
             background: #dcf8c6;
         }
+
         .message-author {
             font-weight: 600;
             color: #6c5ce7;
@@ -1054,21 +1129,25 @@
             align-items: center;
             gap: 5px;
         }
+
         .message-text {
             word-break: break-word;
         }
+
         .message-translated {
             font-size: 11px;
             color: #999;
             margin-top: 4px;
             font-style: italic;
         }
+
         .message-reactions {
             display: flex;
             gap: 8px;
             margin-top: 8px;
             flex-wrap: wrap;
         }
+
         .reaction-btn {
             background: #f0f3f8;
             border: none;
@@ -1082,20 +1161,51 @@
             transition: all 0.2s;
             border: 1px solid transparent;
         }
+
         .reaction-btn:hover {
             background: #667eea;
             color: white;
             transform: scale(1.05);
         }
+
         .reaction-btn.active {
             background: #667eea;
             color: white;
             border-color: #764ba2;
         }
+
         .reaction-count {
             font-size: 11px;
             font-weight: 600;
         }
+
+        .delete-message-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(220, 53, 69, 0.8);
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 100;
+        }
+
+        .message:hover .delete-message-btn {
+            opacity: 1;
+        }
+
+        .message.own .delete-message-btn {
+            background: rgba(220, 53, 69, 0.9);
+        }
+
         .pinned-message {
             background: #fff3cd;
             padding: 8px 15px;
@@ -1106,6 +1216,7 @@
             gap: 10px;
             font-size: 13px;
         }
+
         .typing-indicator {
             font-size: 12px;
             color: #667eea;
@@ -1122,6 +1233,7 @@
             border-top: 1px solid rgba(240, 240, 240, 0.8);
             align-items: center;
         }
+
         .emoji-picker-btn {
             width: 40px;
             height: 40px;
@@ -1133,11 +1245,13 @@
             cursor: pointer;
             transition: all 0.3s;
         }
+
         .emoji-picker-btn:hover {
             background: #667eea;
             color: white;
             transform: scale(1.1);
         }
+
         .message-input-area input {
             flex: 1;
             padding: 12px 18px;
@@ -1147,10 +1261,12 @@
             font-size: 14px;
             transition: all 0.3s;
         }
+
         .message-input-area input:focus {
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
+
         .message-input-area button {
             width: 50px;
             height: 50px;
@@ -1162,11 +1278,11 @@
             cursor: pointer;
             transition: all 0.3s;
         }
+
         .message-input-area button:hover {
             transform: scale(1.1) rotate(90deg);
         }
 
-        /* Эмодзи для сообщений */
         .emoji-picker {
             position: absolute;
             bottom: 80px;
@@ -1183,9 +1299,11 @@
             max-height: 250px;
             overflow-y: auto;
         }
+
         .emoji-picker.show {
             display: grid;
         }
+
         .emoji-picker span {
             width: 35px;
             height: 35px;
@@ -1197,6 +1315,7 @@
             border-radius: 8px;
             transition: all 0.2s;
         }
+
         .emoji-picker span:hover {
             background: #667eea;
             transform: scale(1.1);
@@ -1213,10 +1332,12 @@
             z-index: 2000;
             padding: 20px;
         }
+
         .modal.show {
             display: flex;
             animation: fadeIn 0.3s;
         }
+
         .modal-content {
             background: white;
             border-radius: 25px;
@@ -1225,6 +1346,7 @@
             max-width: 400px;
             animation: slideUp 0.3s;
         }
+
         .friend-code {
             background: #f0f3f8;
             padding: 15px;
@@ -1238,12 +1360,14 @@
             text-transform: uppercase;
             word-break: break-all;
         }
+
         .cooldown-timer {
             font-size: 12px;
             color: #dc3545;
             margin-top: 5px;
             text-align: center;
         }
+
         .room-info-item {
             display: flex;
             justify-content: space-between;
@@ -1252,17 +1376,20 @@
             border-radius: 10px;
             margin-bottom: 10px;
         }
+
         .friend-code-label {
             font-size: 14px;
             color: #666;
             margin-bottom: 5px;
             text-align: center;
         }
+
         .status-error {
             color: #dc3545;
             margin: 10px 0;
             text-align: center;
         }
+
         .status-success {
             color: #28a745;
             margin: 10px 0;
@@ -1283,9 +1410,11 @@
             z-index: 3000;
             animation: slideUp 0.3s;
         }
+
         .private-chat.show {
             display: flex;
         }
+
         .private-chat-header {
             padding: 15px;
             background: linear-gradient(135deg, #667eea, #764ba2);
@@ -1295,18 +1424,21 @@
             justify-content: space-between;
             align-items: center;
         }
+
         .private-chat-messages {
             flex: 1;
             padding: 15px;
             overflow-y: auto;
             background: #fafafa;
         }
+
         .private-chat-input {
             padding: 15px;
             display: flex;
             gap: 10px;
             border-top: 1px solid #eee;
         }
+
         .private-chat-input input {
             flex: 1;
             padding: 8px 12px;
@@ -1314,6 +1446,7 @@
             border-radius: 20px;
             outline: none;
         }
+
         .private-chat-input button {
             padding: 8px 15px;
             background: linear-gradient(135deg, #6c5ce7, #a463f5);
@@ -1322,6 +1455,7 @@
             border-radius: 20px;
             cursor: pointer;
         }
+
         .close-chat {
             background: none;
             border: none;
@@ -1334,10 +1468,12 @@
             from { opacity: 0; }
             to { opacity: 1; }
         }
+
         @keyframes slideIn {
             from { transform: translateX(-20px); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
+
         @keyframes slideUp {
             from { transform: translateY(20px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
@@ -1407,7 +1543,6 @@
                 </div>
                 <button class="edit-profile-btn" onclick="toggleSettings()">✏️ Редактировать</button>
                 <div class="profile-settings" id="profileSettings">
-                    <!-- ЭМОДЗИ ТЕПЕРЬ ТОЧНО ВИДНЫ -->
                     <div class="emoji-section">
                         <div class="emoji-title">Выберите аватар</div>
                         <div class="emoji-grid" id="emojiGrid"></div>
@@ -1766,12 +1901,13 @@
     let pinnedMessages = {};
 
     // ========== ПОДКЛЮЧЕНИЕ К СЕРВЕРУ ==========
-const socket = io({
-  transports: ['websocket', 'polling'],
-  reconnection: true,
-  reconnectionAttempts: 5,
-  reconnectionDelay: 1000
-});
+    const socket = io({
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000
+    });
+
     // ========== ДАННЫЕ ПОЛЬЗОВАТЕЛЯ ДЛЯ СОКЕТА ==========
     let socketUser = {
         name: 'Аноним',
@@ -1841,16 +1977,16 @@ const socket = io({
         showChat();
     }
 
-// ========== ФУНКЦИЯ ДЛЯ БЕЗОПАСНОСТИ (экранирование HTML) ==========
-function escapeHtml(unsafe) {
-    if (!unsafe) return '';
-    return unsafe
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
+    // ========== ФУНКЦИЯ ДЛЯ БЕЗОПАСНОСТИ (экранирование HTML) ==========
+    function escapeHtml(unsafe) {
+        if (!unsafe) return '';
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
 
     // ========== ПРАВИЛА ==========
     function showTerms() { document.getElementById('termsModal').classList.add('show'); }
@@ -1877,27 +2013,26 @@ function escapeHtml(unsafe) {
             country: 'Россия',
             avatar: '😊',
             avatarBackground: 'theme-default',
-            friendCode: 'TEST' + Math.floor(Math.random() * 1000)
+            friendCode: 'TEST' + Math.floor(Math.random() * 1000),
+            isAdmin: true
         };
         users.push(testUser);
         try {
-    // Проверяем размер перед сохранением
-    let usersJSON = JSON.stringify(users);
-    if (usersJSON.length < 5000000) { // 5MB лимит
-    } else {
-        console.warn('Слишком много данных для localStorage');
-        // Сохраняем только последних 100 пользователей
-        let recentUsers = users.slice(-100);
-        localStorage.setItem('users', JSON.stringify(recentUsers));
-    }
-} catch (e) {
-    console.error('Ошибка сохранения в localStorage:', e);
-    // Если переполнение, очищаем старые данные
-    if (e.name === 'QuotaExceededError') {
-        let recentUsers = users.slice(-50); // Оставляем только последних 50
-        localStorage.setItem('users', JSON.stringify(recentUsers));
-    }
-}
+            let usersJSON = JSON.stringify(users);
+            if (usersJSON.length < 5000000) {
+                localStorage.setItem('users', JSON.stringify(users));
+            } else {
+                console.warn('Слишком много данных для localStorage');
+                let recentUsers = users.slice(-100);
+                localStorage.setItem('users', JSON.stringify(recentUsers));
+            }
+        } catch (e) {
+            console.error('Ошибка сохранения в localStorage:', e);
+            if (e.name === 'QuotaExceededError') {
+                let recentUsers = users.slice(-50);
+                localStorage.setItem('users', JSON.stringify(recentUsers));
+            }
+        }
         currentUser = testUser;
         socketUser = { name: testUser.name, country: testUser.country, avatar: testUser.avatar };
         localStorage.setItem('currentSession', JSON.stringify(currentUser));
@@ -1920,28 +2055,26 @@ function escapeHtml(unsafe) {
             country: 'Россия',
             avatar: '😊',
             avatarBackground: 'theme-default',
-            friendCode: 'USR' + Math.floor(Math.random() * 1000)
+            friendCode: 'USR' + Math.floor(Math.random() * 1000),
+            isAdmin: false
         };
         users.push(newUser);
-try {
-    // Проверяем размер перед сохранением
-    let usersJSON = JSON.stringify(users);
-    if (usersJSON.length < 5000000) { // 5MB лимит
-        localStorage.setItem('users', JSON.stringify(users)); 
-    } else {
-        console.warn('Слишком много данных для localStorage');
-        // Сохраняем только последних 100 пользователей
-        let recentUsers = users.slice(-100);
-        localStorage.setItem('users', JSON.stringify(recentUsers));
-    }
-} catch (e) {
-    console.error('Ошибка сохранения в localStorage:', e);
-    // Если переполнение, очищаем старые данные
-    if (e.name === 'QuotaExceededError') {
-        let recentUsers = users.slice(-50); // Оставляем только последних 50
-        localStorage.setItem('users', JSON.stringify(recentUsers));
-    }
-}
+        try {
+            let usersJSON = JSON.stringify(users);
+            if (usersJSON.length < 5000000) {
+                localStorage.setItem('users', JSON.stringify(users)); 
+            } else {
+                console.warn('Слишком много данных для localStorage');
+                let recentUsers = users.slice(-100);
+                localStorage.setItem('users', JSON.stringify(recentUsers));
+            }
+        } catch (e) {
+            console.error('Ошибка сохранения в localStorage:', e);
+            if (e.name === 'QuotaExceededError') {
+                let recentUsers = users.slice(-50);
+                localStorage.setItem('users', JSON.stringify(recentUsers));
+            }
+        }
 
         currentUser = newUser;
         socketUser = { name: newUser.name, country: newUser.country, avatar: newUser.avatar };
@@ -1981,10 +2114,7 @@ try {
         applyLanguage();
         addSystemMessage(translations[currentLanguage].welcome);
         
-        // Регистрируем пользователя на сервере
         socket.emit('user:register', socketUser);
-        
-        // Подключаемся к общей комнате
         joinRoomSocket('main');
     }
 
@@ -2008,56 +2138,49 @@ try {
         return flags[country] || '🌍';
     }
 
-function applyLanguage() {
-    const t = translations[currentLanguage];
-    
-    // Названия комнат
-    let mainRoomEl = document.getElementById('mainRoomName');
-    if (mainRoomEl) mainRoomEl.innerText = t.mainRoom;
-    
-    let workRoomEl = document.getElementById('workRoomName');
-    if (workRoomEl) workRoomEl.innerText = t.workRoom;
-    
-    let gamesRoomEl = document.getElementById('gamesRoomName');
-    if (gamesRoomEl) gamesRoomEl.innerText = t.gamesRoom;
-    
-    // Текст "онлайн" везде
-    document.querySelectorAll('.online-text, .online-word, .online-counter span:last-child').forEach(el => {
-        if (el) el.innerText = t.online;
-    });
-    
-    // Кнопка редактирования профиля (по классу, а не по ID)
-    let editProfileBtn = document.querySelector('.edit-profile-btn');
-    if (editProfileBtn) editProfileBtn.innerText = t.edit;
-    
-    // Кнопка выхода в настройках
-    let logoutBtn = document.querySelector('.logout-settings-btn');
-    if (logoutBtn) logoutBtn.innerText = t.logout;
-    
-    // Кнопка сохранения (по классу)
-    let saveBtn = document.querySelector('.save-settings');
-    if (saveBtn) saveBtn.innerText = t.save;
-    
-    // Кнопка создания приватной комнаты (по классу)
-    let privateBtn = document.querySelector('.private-room-btn');
-    if (privateBtn) privateBtn.innerHTML = '🔒 + ' + t.create;
-    
-    updateFriendsList();
-    updateFriendRequests();
-    updateBlacklist();
-    
-    if (currentRoom) {
-        let room = rooms[currentRoom] || privateRooms[currentRoom];
-        if (room) {
-            let roomNameEl = document.getElementById('currentRoomName');
-            if (roomNameEl) {
-                roomNameEl.innerHTML = room.type === 'public' ? `💬 ${room.name}` : `🔒 ${room.name}`;
+    function applyLanguage() {
+        const t = translations[currentLanguage];
+        
+        let mainRoomEl = document.getElementById('mainRoomName');
+        if (mainRoomEl) mainRoomEl.innerText = t.mainRoom;
+        
+        let workRoomEl = document.getElementById('workRoomName');
+        if (workRoomEl) workRoomEl.innerText = t.workRoom;
+        
+        let gamesRoomEl = document.getElementById('gamesRoomName');
+        if (gamesRoomEl) gamesRoomEl.innerText = t.gamesRoom;
+        
+        document.querySelectorAll('.online-text, .online-word, .online-counter span:last-child').forEach(el => {
+            if (el) el.innerText = t.online;
+        });
+        
+        let editProfileBtn = document.querySelector('.edit-profile-btn');
+        if (editProfileBtn) editProfileBtn.innerText = t.edit;
+        
+        let logoutBtn = document.querySelector('.logout-settings-btn');
+        if (logoutBtn) logoutBtn.innerText = t.logout;
+        
+        let saveBtn = document.querySelector('.save-settings');
+        if (saveBtn) saveBtn.innerText = t.save;
+        
+        let privateBtn = document.querySelector('.private-room-btn');
+        if (privateBtn) privateBtn.innerHTML = '🔒 + ' + t.create;
+        
+        updateFriendsList();
+        updateFriendRequests();
+        updateBlacklist();
+        
+        if (currentRoom) {
+            let room = rooms[currentRoom] || privateRooms[currentRoom];
+            if (room) {
+                let roomNameEl = document.getElementById('currentRoomName');
+                if (roomNameEl) {
+                    roomNameEl.innerHTML = room.type === 'public' ? `💬 ${room.name}` : `🔒 ${room.name}`;
+                }
             }
         }
     }
-}
 
-    // ========== НАСТРОЙКИ ==========
     function toggleSettings() { document.getElementById('profileSettings').classList.toggle('show'); }
 
     function saveProfile() {
@@ -2067,32 +2190,28 @@ function applyLanguage() {
         document.getElementById('displayName').innerText = currentUser.name;
         document.getElementById('displayCountry').innerHTML = getFlag(currentUser.country) + ' ' + currentUser.country;
         
-        // Обновляем данные для сокета
         socketUser.name = currentUser.name;
         socketUser.country = currentUser.country;
         socket.emit('user:register', socketUser);
         
         toggleSettings();
-          try {
-    // Проверяем размер перед сохранением
-    let usersJSON = JSON.stringify(users);
-    if (usersJSON.length < 5000000) { // 5MB лимит
-        localStorage.setItem('users', JSON.stringify(users));
-    } else {
-        console.warn('Слишком много данных для localStorage');
-        // Сохраняем только последних 100 пользователей
-        let recentUsers = users.slice(-100);
-        localStorage.setItem('users', JSON.stringify(recentUsers));
-    }
-} catch (e) {
-    console.error('Ошибка сохранения в localStorage:', e);
-    // Если переполнение, очищаем старые данные
-    if (e.name === 'QuotaExceededError') {
-        let recentUsers = users.slice(-50); // Оставляем только последних 50
-        localStorage.setItem('users', JSON.stringify(recentUsers));
-    }
-}
-     
+        try {
+            let usersJSON = JSON.stringify(users);
+            if (usersJSON.length < 5000000) {
+                localStorage.setItem('users', JSON.stringify(users));
+            } else {
+                console.warn('Слишком много данных для localStorage');
+                let recentUsers = users.slice(-100);
+                localStorage.setItem('users', JSON.stringify(recentUsers));
+            }
+        } catch (e) {
+            console.error('Ошибка сохранения в localStorage:', e);
+            if (e.name === 'QuotaExceededError') {
+                let recentUsers = users.slice(-50);
+                localStorage.setItem('users', JSON.stringify(recentUsers));
+            }
+        }
+        
         let userIndex = users.findIndex(u => u.id === currentUser.id);
         if (userIndex !== -1) {
             users[userIndex] = currentUser;
@@ -2148,7 +2267,6 @@ function applyLanguage() {
         });
     }
 
-    // ========== ВКЛАДКИ ==========
     function switchTab(tab, element) {
         document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
         element.classList.add('active');
@@ -2157,7 +2275,6 @@ function applyLanguage() {
         document.getElementById('friendsTab').style.display = tab === 'friends' ? 'block' : 'none';
     }
 
-    // ========== КОМНАТЫ ==========
     function switchRoom(roomId, element) {
         document.querySelectorAll('.room-item').forEach(el => el.classList.remove('active'));
         element.classList.add('active');
@@ -2194,42 +2311,38 @@ function applyLanguage() {
         }
     }
 
-    // ========== СТРАНЫ ==========
-   function switchCountry(country) {
-    let roomId = 'country_' + country;
-    
-    if (!rooms[roomId]) {
-        let countryNames = {
-            'usa': 'США', 'uk': 'Великобритания', 'germany': 'Германия',
-            'france': 'Франция', 'spain': 'Испания', 'italy': 'Италия',
-            'china': 'Китай', 'japan': 'Япония', 'korea': 'Корея',
-            'brazil': 'Бразилия', 'canada': 'Канада', 'australia': 'Австралия',
-            'india': 'Индия', 'russia': 'Россия'
-        };
-        rooms[roomId] = { 
-            name: countryNames[country] || country, 
-            type: 'public', 
-            password: null, 
-            users: [], 
-            messages: [], 
-            unread: 0 
-        };
+    function switchCountry(country) {
+        let roomId = 'country_' + country;
+        
+        if (!rooms[roomId]) {
+            let countryNames = {
+                'usa': 'США', 'uk': 'Великобритания', 'germany': 'Германия',
+                'france': 'Франция', 'spain': 'Испания', 'italy': 'Италия',
+                'china': 'Китай', 'japan': 'Япония', 'korea': 'Корея',
+                'brazil': 'Бразилия', 'canada': 'Канада', 'australia': 'Австралия',
+                'india': 'Индия', 'russia': 'Россия'
+            };
+            rooms[roomId] = { 
+                name: countryNames[country] || country, 
+                type: 'public', 
+                password: null, 
+                users: [], 
+                messages: [], 
+                unread: 0 
+            };
+        }
+        
+        currentRoom = roomId;
+        document.querySelectorAll('.room-item').forEach(el => el.classList.remove('active'));
+        document.getElementById('currentRoomName').innerHTML = `🌍 ${rooms[roomId].name}`;
+        document.getElementById('onlineCount').innerText = rooms[roomId].users.length;
+        
+        updateUsersPopup(rooms[roomId].users);
+        loadRoomMessages(roomId);
+        
+        joinRoomSocket(roomId);
     }
-    
-    currentRoom = roomId;
-    document.querySelectorAll('.room-item').forEach(el => el.classList.remove('active'));
-    document.getElementById('currentRoomName').innerHTML = `🌍 ${rooms[roomId].name}`;
-    document.getElementById('onlineCount').innerText = rooms[roomId].users.length;
-    
-    // document.getElementById('popupUserCount').innerText = `(${rooms[roomId].users.length})`;
-    
-    updateUsersPopup(rooms[roomId].users);
-    loadRoomMessages(roomId);
-    
-    // Подключаемся к комнате через сокет
-    joinRoomSocket(roomId);
-}
-    // ========== СООБЩЕНИЯ (ЛОКАЛЬНЫЕ) ==========
+
     function sendMessage() {
         let input = document.getElementById('messageInput');
         let text = input.value.trim();
@@ -2244,69 +2357,78 @@ function applyLanguage() {
         addMessageToUI(currentUser.name, text, time, true, currentUser.avatarBackground, id);
         input.value = '';
         
-        // Отправляем через сокет
         socket.emit('message:send', { text });
     }
 
-   function addMessageToUI(author, text, time, isOwn, avatarBg, messageId, reactions) {
-    let area = document.getElementById('messagesArea');
-    if (!area) return;
-    
-    let div = document.createElement('div');
-    div.className = 'message' + (isOwn ? ' own' : '');
-    if (messageId) div.id = `msg-${messageId}`;
-    
-    // Проверяем существование currentUser
-    if (!currentUser) return;
-    
-    let bgGradient = isOwn ? getGradientByTheme(currentUser.avatarBackground) : getGradientByTheme(avatarBg || 'theme-default');
-    let avatar = isOwn ? (currentUser.avatar || '👤') : '👤';
-    
-    // Экранируем текст сообщения для безопасности
-    let escapedText = escapeHtml(text);
-    let escapedAuthor = escapeHtml(author);
-    
-    let reactionsHtml = '';
-    if (reactions && typeof reactions === 'object') {
-        for (let [emoji, users] of Object.entries(reactions)) {
-            if (Array.isArray(users)) {
-                let userReacted = users.includes(currentUser.name);
-                reactionsHtml += `<span class="reaction-btn ${userReacted ? 'active' : ''}" onclick="toggleReaction(${messageId}, '${emoji}')">${emoji} <span class="reaction-count">${users.length}</span></span>`;
+    function addMessageToUI(author, text, time, isOwn, avatarBg, messageId, reactions) {
+        let area = document.getElementById('messagesArea');
+        if (!area) return;
+        
+        let div = document.createElement('div');
+        div.className = 'message' + (isOwn ? ' own' : '');
+        div.id = `msg-${messageId}`;
+        div.setAttribute('data-message-id', messageId);
+        div.setAttribute('data-author', author);
+        
+        if (!currentUser) return;
+        
+        let bgGradient = isOwn ? getGradientByTheme(currentUser.avatarBackground) : getGradientByTheme(avatarBg || 'theme-default');
+        let avatar = isOwn ? (currentUser.avatar || '👤') : '👤';
+        
+        let escapedText = escapeHtml(text);
+        let escapedAuthor = escapeHtml(author);
+        
+        let reactionsHtml = '';
+        if (reactions && typeof reactions === 'object') {
+            for (let [emoji, users] of Object.entries(reactions)) {
+                if (Array.isArray(users)) {
+                    let userReacted = users.includes(currentUser.name);
+                    reactionsHtml += `<span class="reaction-btn ${userReacted ? 'active' : ''}" onclick="toggleReaction(${messageId}, '${emoji}')">${emoji} <span class="reaction-count">${users.length}</span></span>`;
+                }
             }
         }
-    }
-    
-    div.innerHTML = `
-        <div class="message-avatar" style="background: ${bgGradient}">${avatar}</div>
-        <div class="message-content">
-            <div class="message-author">${escapedAuthor}</div>
-            <div class="message-text">${escapedText}</div>
-            <div class="message-reactions" id="reactions-${messageId || ''}">${reactionsHtml}</div>
-            <div class="message-time">${escapeHtml(time || '')}</div>
-        </div>
-    `;
-    
-    // Добавляем обработчики с проверкой messageId
-    if (messageId) {
+        
+        let deleteButton = '';
+        if (isOwn || currentUser.isAdmin) {
+            deleteButton = `<span class="delete-message-btn" onclick="deleteMessage('${messageId}', event)">🗑️</span>`;
+        }
+        
+        div.innerHTML = `
+            <div class="message-avatar" style="background: ${bgGradient}">${avatar}</div>
+            <div class="message-content">
+                <div class="message-author">${escapedAuthor}</div>
+                <div class="message-text">${escapedText}</div>
+                <div class="message-reactions" id="reactions-${messageId || ''}">${reactionsHtml}</div>
+                <div class="message-time">${escapeHtml(time || '')}</div>
+                ${deleteButton}
+            </div>
+        `;
+        
         div.addEventListener('contextmenu', (e) => {
             e.preventDefault();
-            showReactionMenuForMessage(e, messageId);
+            showDeleteMenuForMessage(e, messageId, author);
         });
         
         let pressTimer;
         div.addEventListener('touchstart', (e) => {
             pressTimer = setTimeout(() => {
                 e.preventDefault();
-                showReactionMenuForMessage(e, messageId);
+                showDeleteMenuForMessage(e, messageId, author);
             }, 500);
         });
         div.addEventListener('touchend', () => clearTimeout(pressTimer));
         div.addEventListener('touchmove', () => clearTimeout(pressTimer));
+        
+        if (messageId) {
+            div.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                showReactionMenuForMessage(e, messageId);
+            });
+        }
+        
+        area.appendChild(div);
+        area.scrollTop = area.scrollHeight;
     }
-    
-    area.appendChild(div);
-    area.scrollTop = area.scrollHeight;
-}
 
     function addSystemMessage(text) {
         let area = document.getElementById('messagesArea');
@@ -2316,30 +2438,115 @@ function applyLanguage() {
         area.appendChild(div);
     }
 
-    // ========== РЕАКЦИИ ==========
- function toggleReaction(messageId, emoji) {
-    // Добавляем проверку на существование пользователя
-    if (!currentUser) return;
-    
-    if (!messageReactions[messageId]) messageReactions[messageId] = {};
-    if (!messageReactions[messageId][emoji]) messageReactions[messageId][emoji] = [];
-    
-    let index = messageReactions[messageId][emoji].indexOf(currentUser.name);
-    if (index === -1) {
-        messageReactions[messageId][emoji].push(currentUser.name);
-    } else {
-        messageReactions[messageId][emoji].splice(index, 1);
-        if (messageReactions[messageId][emoji].length === 0) {
-            delete messageReactions[messageId][emoji];
+    // ========== УДАЛЕНИЕ СООБЩЕНИЙ ==========
+    function deleteMessage(messageId, event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        
+        if (!currentUser) return;
+        
+        let messageElement = document.getElementById(`msg-${messageId}`);
+        if (!messageElement) return;
+        
+        let author = messageElement.getAttribute('data-author');
+        
+        if (author !== currentUser.name && !currentUser.isAdmin) {
+            alert('Вы можете удалять только свои сообщения');
+            return;
+        }
+        
+        if (confirm('Удалить это сообщение?')) {
+            let room = rooms[currentRoom] || privateRooms[currentRoom];
+            if (room && room.messages) {
+                room.messages = room.messages.filter(msg => msg.id != messageId);
+            }
+            
+            if (messageReactions[messageId]) {
+                delete messageReactions[messageId];
+            }
+            
+            messageElement.remove();
+            
+            socket.emit('message:delete', {
+                messageId: messageId,
+                roomId: currentRoom
+            });
         }
     }
-    
-    if (Object.keys(messageReactions[messageId]).length === 0) {
-        delete messageReactions[messageId];
+
+    function showDeleteMenuForMessage(e, messageId, author) {
+        if (!currentUser) return;
+        
+        if (author !== currentUser.name && !currentUser.isAdmin) return;
+        
+        let menu = document.createElement('div');
+        menu.style.position = 'absolute';
+        menu.style.background = 'white';
+        menu.style.borderRadius = '20px';
+        menu.style.padding = '10px';
+        menu.style.boxShadow = '0 5px 20px rgba(0,0,0,0.2)';
+        menu.style.zIndex = '5000';
+        menu.style.display = 'flex';
+        menu.style.flexDirection = 'column';
+        menu.style.gap = '5px';
+        
+        let deleteBtn = document.createElement('button');
+        deleteBtn.innerText = '🗑️ Удалить сообщение';
+        deleteBtn.style.padding = '8px 15px';
+        deleteBtn.style.border = 'none';
+        deleteBtn.style.borderRadius = '10px';
+        deleteBtn.style.background = '#dc3545';
+        deleteBtn.style.color = 'white';
+        deleteBtn.style.cursor = 'pointer';
+        deleteBtn.style.fontSize = '14px';
+        deleteBtn.onclick = () => {
+            deleteMessage(messageId, e);
+            menu.remove();
+        };
+        
+        menu.appendChild(deleteBtn);
+        document.body.appendChild(menu);
+        menu.style.left = e.pageX + 'px';
+        menu.style.top = e.pageY + 'px';
+        
+        setTimeout(() => {
+            if (menu.parentNode) menu.remove();
+        }, 3000);
+        
+        setTimeout(() => {
+            document.addEventListener('click', function closeMenu(clickEvent) {
+                if (!menu.contains(clickEvent.target)) {
+                    menu.remove();
+                    document.removeEventListener('click', closeMenu);
+                }
+            });
+        }, 100);
     }
-    
-    updateReactions(messageId);
-}
+
+    function toggleReaction(messageId, emoji) {
+        if (!currentUser) return;
+        
+        if (!messageReactions[messageId]) messageReactions[messageId] = {};
+        if (!messageReactions[messageId][emoji]) messageReactions[messageId][emoji] = [];
+        
+        let index = messageReactions[messageId][emoji].indexOf(currentUser.name);
+        if (index === -1) {
+            messageReactions[messageId][emoji].push(currentUser.name);
+        } else {
+            messageReactions[messageId][emoji].splice(index, 1);
+            if (messageReactions[messageId][emoji].length === 0) {
+                delete messageReactions[messageId][emoji];
+            }
+        }
+        
+        if (Object.keys(messageReactions[messageId]).length === 0) {
+            delete messageReactions[messageId];
+        }
+        
+        updateReactions(messageId);
+    }
 
     function updateReactions(messageId) {
         let div = document.getElementById(`reactions-${messageId}`);
@@ -2658,97 +2865,101 @@ function applyLanguage() {
     function toggleUsersPopup() { document.getElementById('usersPopup').classList.toggle('show'); }
 
     // ========== СОКЕТ СОБЫТИЯ ==========
-    
-    // Подключение к комнате через сокет
-function joinRoomSocket(roomId) {
-    if (!socket) return;
-    
-    socketCurrentRoom = roomId;
-    socket.emit('room:join', roomId, (data) => {
-        // Проверяем наличие ошибки
-        if (data && data.error) {
-            console.error('Ошибка подключения к комнате:', data.error);
-            addSystemMessage('Ошибка подключения к комнате');
-            return;
-        }
+    function joinRoomSocket(roomId) {
+        if (!socket) return;
         
-        // Очищаем сообщения
-        let messagesArea = document.getElementById('messagesArea');
-        if (messagesArea) messagesArea.innerHTML = '';
-        
-        // Загружаем историю сообщений
-        if (data && data.messages && Array.isArray(data.messages) && data.messages.length > 0) {
-            data.messages.forEach(msg => {
-                if (msg && msg.author && msg.text) {
-                    addMessageToUI(msg.author, msg.text, msg.time, msg.author === currentUser?.name);
-                }
-            });
-        } else {
-            addSystemMessage('Добро пожаловать в чат!');
-        }
-        
-        // Обновляем онлайн счетчик
-        let onlineEl = document.getElementById('onlineCount');
-        if (onlineEl) onlineEl.innerText = (data && data.users && data.users.length) ? data.users.length : 0;
-        
-        // Обновляем список пользователей
-        if (data && data.users) {
-            updateUsersListSocket(data.users);
-        }
-    });
-}
-
-// Получение нового сообщения
-socket.on('message:new', (message) => {
-    if (!currentUser) return; // Проверка на существование пользователя
-    if (message && message.author !== currentUser.name) {
-        addMessageToUI(message.author, message.text, message.time, false);
-    }
-});
-
-// Обновление онлайн счетчика
-socket.on('online:update', (count) => {
-    let el = document.getElementById('onlineCount');
-    if (el) el.innerText = count || 0;
-});
-
-// Уведомления о подключении/отключении
-socket.on('user:joined', (userName) => {
-    if (!currentUser || !userName) return;
-    if (userName !== currentUser.name) {
-        addSystemMessage(`${userName} присоединился к чату`);
-    }
-});
-
-socket.on('user:left', (userName) => {
-    if (!currentUser || !userName) return;
-    if (userName !== currentUser.name) {
-        addSystemMessage(`${userName} покинул чат`);
-    }
-});
-
-// Обновление списка пользователей
-function updateUsersListSocket(users) {
-    let list = document.getElementById('usersList');
-    if (!list) return;
-    list.innerHTML = '';
-    
-    // Проверяем, что users - массив и не пустой
-    if (Array.isArray(users) && users.length > 0) {
-        let fragment = document.createDocumentFragment(); // Для производительности
-        users.forEach(user => {
-            if (user && user.name) { // Проверяем, что user существует и есть имя
-                let div = document.createElement('div');
-                div.className = 'user-item';
-                div.innerHTML = `<span class="user-status"></span> ${escapeHtml(user.name)}`; // Экранируем имя
-                fragment.appendChild(div);
+        socketCurrentRoom = roomId;
+        socket.emit('room:join', roomId, (data) => {
+            if (data && data.error) {
+                console.error('Ошибка подключения к комнате:', data.error);
+                addSystemMessage('Ошибка подключения к комнате');
+                return;
+            }
+            
+            let messagesArea = document.getElementById('messagesArea');
+            if (messagesArea) messagesArea.innerHTML = '';
+            
+            if (data && data.messages && Array.isArray(data.messages) && data.messages.length > 0) {
+                data.messages.forEach(msg => {
+                    if (msg && msg.author && msg.text) {
+                        addMessageToUI(msg.author, msg.text, msg.time, msg.author === currentUser?.name);
+                    }
+                });
+            } else {
+                addSystemMessage(translations[currentLanguage].welcome);
+            }
+            
+            let onlineEl = document.getElementById('onlineCount');
+            if (onlineEl) onlineEl.innerText = (data && data.users && data.users.length) ? data.users.length : 0;
+            
+            if (data && data.users) {
+                updateUsersListSocket(data.users);
             }
         });
-        list.appendChild(fragment);
     }
-}
 
-    // Закрытие попапов
+    socket.on('message:new', (message) => {
+        if (!currentUser) return;
+        if (message && message.author !== currentUser.name) {
+            addMessageToUI(message.author, message.text, message.time, false);
+        }
+    });
+
+    socket.on('online:update', (count) => {
+        let el = document.getElementById('onlineCount');
+        if (el) el.innerText = count || 0;
+    });
+
+    socket.on('user:joined', (userName) => {
+        if (!currentUser || !userName) return;
+        if (userName !== currentUser.name) {
+            addSystemMessage(`${userName} присоединился к чату`);
+        }
+    });
+
+    socket.on('user:left', (userName) => {
+        if (!currentUser || !userName) return;
+        if (userName !== currentUser.name) {
+            addSystemMessage(`${userName} покинул чат`);
+        }
+    });
+
+    socket.on('message:deleted', (data) => {
+        const { messageId } = data;
+        let messageElement = document.getElementById(`msg-${messageId}`);
+        if (messageElement) {
+            messageElement.remove();
+        }
+        
+        let room = rooms[currentRoom] || privateRooms[currentRoom];
+        if (room && room.messages) {
+            room.messages = room.messages.filter(msg => msg.id != messageId);
+        }
+        
+        if (messageReactions[messageId]) {
+            delete messageReactions[messageId];
+        }
+    });
+
+    function updateUsersListSocket(users) {
+        let list = document.getElementById('usersList');
+        if (!list) return;
+        list.innerHTML = '';
+        
+        if (Array.isArray(users) && users.length > 0) {
+            let fragment = document.createDocumentFragment();
+            users.forEach(user => {
+                if (user && user.name) {
+                    let div = document.createElement('div');
+                    div.className = 'user-item';
+                    div.innerHTML = `<span class="user-status"></span> ${escapeHtml(user.name)}`;
+                    fragment.appendChild(div);
+                }
+            });
+            list.appendChild(fragment);
+        }
+    }
+
     document.addEventListener('click', function(e) {
         let picker = document.getElementById('emojiPicker');
         let btn = document.querySelector('.emoji-picker-btn');
