@@ -2532,11 +2532,11 @@
                         msg.author, 
                         msg.text, 
                         msg.time, 
-                        msg.author === currentUser.name, 
+                        msg.author === currentUser.name,  // ← ВАЖНО: сравниваем с currentUser.name
                         msg.avatarBg, 
                         msg.id, 
                         msg.reactions,
-                        msg.avatar
+                        msg.avatar || '👤'
                     );
                 });
             } else {
@@ -2622,85 +2622,83 @@
             });
         }
 
-function addMessageToUI(author, text, time, isOwn, avatarBg, messageId, reactions, authorAvatar) {
-    let area = document.getElementById('messagesArea');
-    if (!area) return;
-    
-    let div = document.createElement('div');
-    div.className = 'message' + (isOwn ? ' own' : '');
-    div.id = `msg-${messageId}`;
-    div.setAttribute('data-message-id', messageId);
-    div.setAttribute('data-author', author);
-    
-    if (!currentUser) return;
-    
-    let bgGradient = isOwn 
-        ? getGradientByTheme(currentUser.avatarBackground) 
-        : getGradientByTheme(avatarBg || 'theme-default');
-    
-    // ИСПРАВЛЕНИЕ: проверяем authorAvatar на undefined
-    let avatar = isOwn 
-        ? (currentUser.avatar || '👤') 
-        : (authorAvatar && authorAvatar !== 'undefined' ? authorAvatar : '👤');
-    
-    let escapedText = escapeHtml(text);
-    let escapedAuthor = escapeHtml(author);
-    
-    let reactionsHtml = '';
-    if (reactions && typeof reactions === 'object') {
-        for (let [emoji, users] of Object.entries(reactions)) {
-            if (Array.isArray(users)) {
-                let userReacted = users.includes(currentUser.name);
-                reactionsHtml += `<span class="reaction-btn ${userReacted ? 'active' : ''}" onclick="toggleReaction(${messageId}, '${emoji}')">${emoji} <span class="reaction-count">${users.length}</span></span>`;
+        function addMessageToUI(author, text, time, isOwn, avatarBg, messageId, reactions, authorAvatar) {
+            let area = document.getElementById('messagesArea');
+            if (!area) return;
+            
+            let div = document.createElement('div');
+            div.className = 'message' + (isOwn ? ' own' : '');
+            div.id = `msg-${messageId}`;
+            div.setAttribute('data-message-id', messageId);
+            div.setAttribute('data-author', author);
+            
+            if (!currentUser) return;
+            
+            let bgGradient = isOwn 
+                ? getGradientByTheme(currentUser.avatarBackground) 
+                : getGradientByTheme(avatarBg || 'theme-default');
+            
+            let avatar = isOwn 
+                ? (currentUser.avatar || '👤') 
+                : (authorAvatar && authorAvatar !== 'undefined' ? authorAvatar : '👤');
+            
+            let escapedText = escapeHtml(text);
+            let escapedAuthor = escapeHtml(author);
+            
+            let reactionsHtml = '';
+            if (reactions && typeof reactions === 'object') {
+                for (let [emoji, users] of Object.entries(reactions)) {
+                    if (Array.isArray(users)) {
+                        let userReacted = users.includes(currentUser.name);
+                        reactionsHtml += `<span class="reaction-btn ${userReacted ? 'active' : ''}" onclick="toggleReaction(${messageId}, '${emoji}')">${emoji} <span class="reaction-count">${users.length}</span></span>`;
+                    }
+                }
             }
-        }
-    }
-    
-    let canDelete = isOwn || currentUser.isDev || currentUser.isAdmin;
-    let deleteButton = canDelete && !messageId.toString().startsWith('temp_') ? 
-        `<span class="delete-message-btn" onclick="deleteMessage('${messageId}', event)">🗑️</span>` : '';
-    
-    div.innerHTML = `
-        <div class="message-avatar" style="background: ${bgGradient}">${avatar}</div>
-        <div class="message-content">
-            <div class="message-author">${escapedAuthor}</div>
-            <div class="message-text">${escapedText}</div>
-            <div class="message-reactions" id="reactions-${messageId || ''}">${reactionsHtml}</div>
-            <div class="message-time">${escapeHtml(time || '')}</div>
-            ${deleteButton}
-        </div>
-    `;
-    
-    // Добавляем обработчики
-    div.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        if (isOwn || currentUser.isDev || currentUser.isAdmin) {
-            showDeleteMenuForMessage(e, messageId, author);
-        }
-    });
-    
-    let pressTimer;
-    div.addEventListener('touchstart', (e) => {
-        pressTimer = setTimeout(() => {
-            e.preventDefault();
-            if (isOwn || currentUser.isDev || currentUser.isAdmin) {
-                showDeleteMenuForMessage(e, messageId, author);
+            
+            let canDelete = isOwn || currentUser.isDev || currentUser.isAdmin;
+            let deleteButton = canDelete && !messageId.toString().startsWith('temp_') ? 
+                `<span class="delete-message-btn" onclick="deleteMessage('${messageId}', event)">🗑️</span>` : '';
+            
+            div.innerHTML = `
+                <div class="message-avatar" style="background: ${bgGradient}">${avatar}</div>
+                <div class="message-content">
+                    <div class="message-author">${escapedAuthor}</div>
+                    <div class="message-text">${escapedText}</div>
+                    <div class="message-reactions" id="reactions-${messageId || ''}">${reactionsHtml}</div>
+                    <div class="message-time">${escapeHtml(time || '')}</div>
+                    ${deleteButton}
+                </div>
+            `;
+            
+            div.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                if (isOwn || currentUser.isDev || currentUser.isAdmin) {
+                    showDeleteMenuForMessage(e, messageId, author);
+                }
+            });
+            
+            let pressTimer;
+            div.addEventListener('touchstart', (e) => {
+                pressTimer = setTimeout(() => {
+                    e.preventDefault();
+                    if (isOwn || currentUser.isDev || currentUser.isAdmin) {
+                        showDeleteMenuForMessage(e, messageId, author);
+                    }
+                }, 500);
+            });
+            div.addEventListener('touchend', () => clearTimeout(pressTimer));
+            div.addEventListener('touchmove', () => clearTimeout(pressTimer));
+            
+            if (messageId && !messageId.toString().startsWith('temp_')) {
+                div.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    showReactionMenuForMessage(e, messageId);
+                });
             }
-        }, 500);
-    });
-    div.addEventListener('touchend', () => clearTimeout(pressTimer));
-    div.addEventListener('touchmove', () => clearTimeout(pressTimer));
-    
-    if (messageId && !messageId.toString().startsWith('temp_')) {
-        div.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            showReactionMenuForMessage(e, messageId);
-        });
-    }
-    
-    area.appendChild(div);
-    area.scrollTop = area.scrollHeight;
-}
+            
+            area.appendChild(div);
+            area.scrollTop = area.scrollHeight;
+        }
 
         function addSystemMessage(text) {
             let area = document.getElementById('messagesArea');
