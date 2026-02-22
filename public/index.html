@@ -170,6 +170,7 @@
             color: #666;
             font-size: 13px;
             margin-top: 20px;
+            position: relative;
         }
 
         .auth-footer a {
@@ -177,6 +178,23 @@
             text-decoration: none;
             font-weight: 600;
             cursor: pointer;
+        }
+
+        .dev-badge {
+            margin-top: 15px;
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            padding: 8px;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            transition: all 0.3s;
+        }
+
+        .dev-badge:hover {
+            background: rgba(102, 126, 234, 0.2);
+            transform: scale(1.02);
         }
 
         .terms-modal {
@@ -1464,6 +1482,95 @@
             cursor: pointer;
         }
 
+        .dev-panel {
+            position: fixed;
+            bottom: 50px;
+            right: 20px;
+            width: 320px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            z-index: 10001;
+            display: none;
+            overflow: hidden;
+            animation: slideUp 0.3s;
+        }
+
+        .dev-panel.show {
+            display: block;
+        }
+
+        .dev-panel-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dev-panel-content {
+            padding: 15px;
+            max-height: 350px;
+            overflow-y: auto;
+        }
+
+        .dev-user-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .dev-user-item:last-child {
+            border-bottom: none;
+        }
+
+        .dev-user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dev-user-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .dev-user-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .dev-user-badge {
+            background: #ff6b6b;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+        }
+
+        .dev-delete-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .dev-delete-btn:hover {
+            background: #c82333;
+        }
+
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
@@ -1481,7 +1588,6 @@
     </style>
 </head>
 <body class="theme-default">
-    <!-- Модальное окно с правилами -->
     <div class="terms-modal" id="termsModal">
         <div class="terms-content">
             <h2>Правила использования Web Chat</h2>
@@ -1501,7 +1607,6 @@
         </div>
     </div>
 
-    <!-- Страница входа -->
     <div class="auth-container" id="authContainer">
         <div class="auth-header">
             <h1>Web Chat</h1>
@@ -1526,11 +1631,11 @@
             <button class="auth-btn" onclick="register()">Регистрация</button>
         </div>
         <div class="auth-footer">
-            Нажимая кнопку, вы соглашаетесь с <a href="#" onclick="showTerms()">условиями</a>
+            <div>Нажимая кнопку, вы соглашаетесь с <a href="#" onclick="showTerms()">условиями</a></div>
+            <div class="dev-badge" onclick="openDevModal()">👨‍💻 Developer</div>
         </div>
     </div>
 
-    <!-- Основной чат -->
     <div class="chat-app" id="chatApp">
         <div class="sidebar">
             <div class="profile-section">
@@ -1819,7 +1924,6 @@
         </div>
     </div>
 
-    <!-- Модальные окна -->
     <div class="modal" id="privateModal">
         <div class="modal-content">
             <h3 id="modalTitle">Создать комнату</h3>
@@ -1870,594 +1974,1129 @@
             <button onclick="sendPrivateMessage()">→</button>
         </div>
     </div>
- 
-<!-- Подключаем Socket.IO -->
-<script src="/socket.io/socket.io.js"></script>
-<script>
-    // ========== ЭМОДЗИ ДЛЯ АВАТАРКИ (ОБЪЯВЛЯЕМ ПЕРВЫМИ) ==========
-    const avatarEmojis = [
-        '😊', '😎', '🤓', '😇', '🥳', '😍', '🔥', '⭐', 
-        '🦊', '🐼', '🐨', '🦁', '🐱', '🐶', '🐰', '🐸',
-        '🌸', '🌈', '🍕', '🎮'
-    ];
 
-    // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
-    let users = JSON.parse(localStorage.getItem('users')) || [];
-    let currentUser = null;
-    let currentRoom = 'main';
-    let rooms = {
-        main: { name: 'Общая', type: 'public', password: null, users: [], messages: [], unread: 0 },
-        work: { name: 'Работа', type: 'public', password: null, users: [], messages: [], unread: 0 },
-        games: { name: 'Игры', type: 'public', password: null, users: [], messages: [], unread: 0 }
-    };
-    let privateRooms = {};
-    let friends = [];
-    let blacklist = [];
-    let friendRequests = [];
-    let sentRequests = [];
-    let lastRequestTime = 0;
-    const COOLDOWN_TIME = 60000;
-    let messageReactions = {};
-    let pinnedMessages = {};
-
-    // ========== ПОДКЛЮЧЕНИЕ К СЕРВЕРУ ==========
-    const socket = io({
-        transports: ['websocket', 'polling'],
-        reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000
-    });
-
-    // ========== ДАННЫЕ ПОЛЬЗОВАТЕЛЯ ДЛЯ СОКЕТА ==========
-    let socketUser = {
-        name: 'Аноним',
-        country: 'Россия',
-        avatar: '😊'
-    };
-    let socketCurrentRoom = 'main';
-
-    // ========== ОПРЕДЕЛЕНИЕ ЯЗЫКА БРАУЗЕРА ==========
-    function getBrowserLanguage() {
-        let lang = navigator.language || navigator.userLanguage;
-        lang = lang.split('-')[0];
-        const supportedLangs = ['ru', 'en', 'es', 'zh', 'ja', 'ko', 'de', 'fr'];
-        return supportedLangs.includes(lang) ? lang : 'en';
-    }
-
-    // ========== ПЕРЕВОДЫ ==========
-    const translations = {
-        ru: {
-            mainRoom: 'Общая', workRoom: 'Работа', gamesRoom: 'Игры',
-            online: 'онлайн', system: 'Система', welcome: 'Добро пожаловать!',
-            noFriends: 'У вас пока нет друзей', userNotFound: 'Пользователь не найден',
-            requestSent: 'Запрос отправлен!', blacklist: 'ЧЕРНЫЙ СПИСОК',
-            accept: 'Принять', decline: 'Отклонить', delete: 'Удалить',
-            ban: 'В ЧС', message: 'Сообщение', unban: 'Разблокировать',
-            yourCode: 'Ваш код:', enterCode: 'Введите код друга',
-            close: 'Закрыть', send: 'Отправить', create: 'Создать',
-            join: 'Присоединиться', cancel: 'Отмена', save: 'Сохранить',
-            logout: '🚪 Выйти', edit: '✏️ Редактировать',
-            emptyCode: 'Введите код друга', selfCode: 'Нельзя добавить себя',
-            alreadySent: 'Запрос уже отправлен', roomCreated: 'Комната создана!',
-            roomJoined: 'Вы присоединились!', roomNotFound: 'Комната не найдена',
-            confirmDelete: 'Удалить комнату?', roomDeleted: 'Комната удалена',
-            participants: 'Участники', password: 'Пароль', name: 'Название'
-        },
-        en: {
-            mainRoom: 'General', workRoom: 'Work', gamesRoom: 'Games',
-            online: 'online', system: 'System', welcome: 'Welcome!',
-            noFriends: 'You have no friends yet', userNotFound: 'User not found',
-            requestSent: 'Request sent!', blacklist: 'BLACKLIST',
-            accept: 'Accept', decline: 'Decline', delete: 'Delete',
-            ban: 'Block', message: 'Message', unban: 'Unblock',
-            yourCode: 'Your code:', enterCode: 'Enter friend code',
-            close: 'Close', send: 'Send', create: 'Create',
-            join: 'Join', cancel: 'Cancel', save: 'Save',
-            logout: '🚪 Log out', edit: '✏️ Edit',
-            emptyCode: 'Enter friend code', selfCode: 'Cannot add yourself',
-            alreadySent: 'Request already sent', roomCreated: 'Room created!',
-            roomJoined: 'You joined!', roomNotFound: 'Room not found',
-            confirmDelete: 'Delete room?', roomDeleted: 'Room deleted',
-            participants: 'Participants', password: 'Password', name: 'Name'
-        }
-    };
-
-    // Текущий язык
-    let currentLanguage = getBrowserLanguage();
-
-    // Загружаем сессию
-    let savedSession = JSON.parse(localStorage.getItem('currentSession'));
-    if (savedSession) {
-        currentUser = savedSession;
-        socketUser = {
-            name: currentUser.name,
-            country: currentUser.country,
-            avatar: currentUser.avatar
-        };
-        showChat();
-    }
-
-    // ========== ФУНКЦИЯ ДЛЯ БЕЗОПАСНОСТИ (экранирование HTML) ==========
-    function escapeHtml(unsafe) {
-        if (!unsafe) return '';
-        return unsafe
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-    }
-
-    // ========== ПРАВИЛА ==========
-    function showTerms() { document.getElementById('termsModal').classList.add('show'); }
-    function closeTerms() { document.getElementById('termsModal').classList.remove('show'); }
-
-    // ========== АВТОРИЗАЦИЯ ==========
-    function switchAuthTab(tab) {
-        document.querySelectorAll('.auth-tab').forEach(el => el.classList.remove('active'));
-        document.querySelectorAll('.auth-form').forEach(el => el.classList.remove('active'));
-        if (tab === 'login') {
-            document.querySelector('.auth-tab').classList.add('active');
-            document.getElementById('loginForm').classList.add('active');
-        } else {
-            document.querySelectorAll('.auth-tab')[1].classList.add('active');
-            document.getElementById('registerForm').classList.add('active');
-        }
-    }
-
-    function quickLogin() {
-        let testUser = {
-            id: Date.now(),
-            username: 'Тестовый',
-            name: 'Тестовый',
-            country: 'Россия',
-            avatar: '😊',
-            avatarBackground: 'theme-default',
-            friendCode: 'TEST' + Math.floor(Math.random() * 1000),
-            isAdmin: true
-        };
-        users.push(testUser);
-        try {
-            let usersJSON = JSON.stringify(users);
-            if (usersJSON.length < 5000000) {
-                localStorage.setItem('users', JSON.stringify(users));
-            } else {
-                console.warn('Слишком много данных для localStorage');
-                let recentUsers = users.slice(-100);
-                localStorage.setItem('users', JSON.stringify(recentUsers));
-            }
-        } catch (e) {
-            console.error('Ошибка сохранения в localStorage:', e);
-            if (e.name === 'QuotaExceededError') {
-                let recentUsers = users.slice(-50);
-                localStorage.setItem('users', JSON.stringify(recentUsers));
-            }
-        }
-        currentUser = testUser;
-        socketUser = { name: testUser.name, country: testUser.country, avatar: testUser.avatar };
-        localStorage.setItem('currentSession', JSON.stringify(currentUser));
-        showChat();
-    }
-
-    function register() {
-        let username = document.getElementById('registerUsername').value.trim();
-        let email = document.getElementById('registerEmail').value.trim();
-        let password = document.getElementById('registerPassword').value;
-        let confirm = document.getElementById('registerConfirmPassword').value;
-        if (!username || !email || !password || !confirm) { alert('Заполните все поля'); return; }
-        if (password !== confirm) { alert('Пароли не совпадают'); return; }
-        let newUser = {
-            id: Date.now(),
-            username: username,
-            email: email,
-            password: password,
-            name: username,
-            country: 'Россия',
-            avatar: '😊',
-            avatarBackground: 'theme-default',
-            friendCode: 'USR' + Math.floor(Math.random() * 1000),
-            isAdmin: false
-        };
-        users.push(newUser);
-        try {
-            let usersJSON = JSON.stringify(users);
-            if (usersJSON.length < 5000000) {
-                localStorage.setItem('users', JSON.stringify(users)); 
-            } else {
-                console.warn('Слишком много данных для localStorage');
-                let recentUsers = users.slice(-100);
-                localStorage.setItem('users', JSON.stringify(recentUsers));
-            }
-        } catch (e) {
-            console.error('Ошибка сохранения в localStorage:', e);
-            if (e.name === 'QuotaExceededError') {
-                let recentUsers = users.slice(-50);
-                localStorage.setItem('users', JSON.stringify(recentUsers));
-            }
-        }
-
-        currentUser = newUser;
-        socketUser = { name: newUser.name, country: newUser.country, avatar: newUser.avatar };
-        localStorage.setItem('currentSession', JSON.stringify(currentUser));
-        alert('Регистрация успешна!');
-        showChat();
-    }
-
-    function login() {
-        let username = document.getElementById('loginUsername').value.trim();
-        let password = document.getElementById('loginPassword').value;
-        let user = users.find(u => u.username === username && u.password === password);
-        if (!user) { alert('Неверное имя или пароль'); return; }
-        currentUser = user;
-        socketUser = { name: user.name, country: user.country, avatar: user.avatar };
-        localStorage.setItem('currentSession', JSON.stringify(currentUser));
-        showChat();
-    }
-
-    function logout() {
-        localStorage.removeItem('currentSession');
-        currentUser = null;
-        document.getElementById('chatApp').classList.remove('show');
-        document.getElementById('authContainer').style.display = 'block';
-    }
-
-    function showChat() {
-        document.getElementById('authContainer').style.display = 'none';
-        document.getElementById('chatApp').classList.add('show');
-        document.getElementById('displayName').innerText = currentUser.name;
-        document.getElementById('displayCountry').innerHTML = getFlag(currentUser.country) + ' ' + currentUser.country;
-        document.getElementById('avatar').innerText = currentUser.avatar;
-        document.getElementById('avatar').style.background = getGradientByTheme(currentUser.avatarBackground || 'theme-default');
-        document.getElementById('inputName').value = currentUser.name;
-        document.getElementById('inputCountry').value = currentUser.country;
-        loadEmojis();
-        applyLanguage();
-        addSystemMessage(translations[currentLanguage].welcome);
-        
-        socket.emit('user:register', socketUser);
-        joinRoomSocket('main');
-    }
-
-    function getFlag(country) {
-        const flags = {
-            'Россия': '🇷🇺', 'США': '🇺🇸', 'Великобритания': '🇬🇧', 'Германия': '🇩🇪',
-            'Франция': '🇫🇷', 'Испания': '🇪🇸', 'Италия': '🇮🇹', 'Китай': '🇨🇳',
-            'Япония': '🇯🇵', 'Корея': '🇰🇷', 'Индия': '🇮🇳', 'Бразилия': '🇧🇷',
-            'Канада': '🇨🇦', 'Мексика': '🇲🇽', 'Аргентина': '🇦🇷', 'Австралия': '🇦🇺',
-            'Египет': '🇪🇬', 'Турция': '🇹🇷', 'Израиль': '🇮🇱', 'ОАЭ': '🇦🇪',
-            'Польша': '🇵🇱', 'Чехия': '🇨🇿', 'Швеция': '🇸🇪', 'Норвегия': '🇳🇴',
-            'Финляндия': '🇫🇮', 'Дания': '🇩🇰', 'Нидерланды': '🇳🇱', 'Бельгия': '🇧🇪',
-            'Швейцария': '🇨🇭', 'Австрия': '🇦🇹', 'Греция': '🇬🇷', 'Португалия': '🇵🇹',
-            'Украина': '🇺🇦', 'Беларусь': '🇧🇾', 'Казахстан': '🇰🇿', 'Узбекистан': '🇺🇿',
-            'Азербайджан': '🇦🇿', 'Грузия': '🇬🇪', 'Армения': '🇦🇲', 'Молдова': '🇲🇩',
-            'Литва': '🇱🇹', 'Латвия': '🇱🇻', 'Эстония': '🇪🇪', 'Польша': '🇵🇱',
-            'Чехия': '🇨🇿', 'Словакия': '🇸🇰', 'Венгрия': '🇭🇺', 'Румыния': '🇷🇴',
-            'Болгария': '🇧🇬', 'Сербия': '🇷🇸', 'Хорватия': '🇭🇷', 'Словения': '🇸🇮',
-            'ЮАР': '🇿🇦', 'Сингапур': '🇸🇬', 'Таиланд': '🇹🇭'
-        };
-        return flags[country] || '🌍';
-    }
-
-    function applyLanguage() {
-        const t = translations[currentLanguage];
-        
-        let mainRoomEl = document.getElementById('mainRoomName');
-        if (mainRoomEl) mainRoomEl.innerText = t.mainRoom;
-        
-        let workRoomEl = document.getElementById('workRoomName');
-        if (workRoomEl) workRoomEl.innerText = t.workRoom;
-        
-        let gamesRoomEl = document.getElementById('gamesRoomName');
-        if (gamesRoomEl) gamesRoomEl.innerText = t.gamesRoom;
-        
-        document.querySelectorAll('.online-text, .online-word, .online-counter span:last-child').forEach(el => {
-            if (el) el.innerText = t.online;
-        });
-        
-        let editProfileBtn = document.querySelector('.edit-profile-btn');
-        if (editProfileBtn) editProfileBtn.innerText = t.edit;
-        
-        let logoutBtn = document.querySelector('.logout-settings-btn');
-        if (logoutBtn) logoutBtn.innerText = t.logout;
-        
-        let saveBtn = document.querySelector('.save-settings');
-        if (saveBtn) saveBtn.innerText = t.save;
-        
-        let privateBtn = document.querySelector('.private-room-btn');
-        if (privateBtn) privateBtn.innerHTML = '🔒 + ' + t.create;
-        
-        updateFriendsList();
-        updateFriendRequests();
-        updateBlacklist();
-        
-        if (currentRoom) {
-            let room = rooms[currentRoom] || privateRooms[currentRoom];
-            if (room) {
-                let roomNameEl = document.getElementById('currentRoomName');
-                if (roomNameEl) {
-                    roomNameEl.innerHTML = room.type === 'public' ? `💬 ${room.name}` : `🔒 ${room.name}`;
-                }
-            }
-        }
-    }
-
-    function toggleSettings() { document.getElementById('profileSettings').classList.toggle('show'); }
-
-    function saveProfile() {
-        currentUser.name = document.getElementById('inputName').value;
-        currentUser.country = document.getElementById('inputCountry').value;
-        
-        document.getElementById('displayName').innerText = currentUser.name;
-        document.getElementById('displayCountry').innerHTML = getFlag(currentUser.country) + ' ' + currentUser.country;
-        
-        socketUser.name = currentUser.name;
-        socketUser.country = currentUser.country;
-        socket.emit('user:register', socketUser);
-        
-        toggleSettings();
-        try {
-            let usersJSON = JSON.stringify(users);
-            if (usersJSON.length < 5000000) {
-                localStorage.setItem('users', JSON.stringify(users));
-            } else {
-                console.warn('Слишком много данных для localStorage');
-                let recentUsers = users.slice(-100);
-                localStorage.setItem('users', JSON.stringify(recentUsers));
-            }
-        } catch (e) {
-            console.error('Ошибка сохранения в localStorage:', e);
-            if (e.name === 'QuotaExceededError') {
-                let recentUsers = users.slice(-50);
-                localStorage.setItem('users', JSON.stringify(recentUsers));
-            }
-        }
-        
-        let userIndex = users.findIndex(u => u.id === currentUser.id);
-        if (userIndex !== -1) {
-            users[userIndex] = currentUser;
-            localStorage.setItem('users', JSON.stringify(users));
-        }
-    }
-
-    function selectAvatarBackground(theme, element) {
-        document.querySelectorAll('.bg-item').forEach(el => el.classList.remove('selected'));
-        element.classList.add('selected');
-        currentUser.avatarBackground = theme;
-        document.getElementById('avatar').style.background = getGradientByTheme(theme);
-    }
-
-    function getGradientByTheme(theme) {
-        const gradients = {
-            'theme-default': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            'theme-dark': 'linear-gradient(135deg, #2c3e50 0%, #3498db 100%)',
-            'theme-space': 'linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)',
-            'theme-sunset': 'linear-gradient(135deg, #ff6b6b 0%, #feca57 100%)',
-            'theme-forest': 'linear-gradient(135deg, #134e5e 0%, #71b280 100%)',
-            'theme-ocean': 'linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%)',
-            'theme-candy': 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-            'theme-aurora': 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-            'theme-lavender': 'linear-gradient(135deg, #b993d6 0%, #8ca6db 100%)',
-            'theme-peach': 'linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)',
-            'theme-mint': 'linear-gradient(135deg, #a8e6cf 0%, #d4edf5 100%)',
-            'theme-coral': 'linear-gradient(135deg, #ff6f61 0%, #ff9a8b 100%)',
-            'theme-twilight': 'linear-gradient(135deg, #a8c0ff 0%, #3f2b96 100%)',
-            'theme-spring': 'linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%)',
-            'theme-neon': 'linear-gradient(135deg, #12c2e9 0%, #c471ed 50%, #f64f59 100%)',
-            'theme-berry': 'linear-gradient(135deg, #ee9ca7 0%, #ffdde1 100%)'
-        };
-        return gradients[theme] || gradients['theme-default'];
-    }
-
-    function loadEmojis() {
-        let grid = document.getElementById('emojiGrid');
-        if (!grid) return;
-        grid.innerHTML = '';
-        avatarEmojis.forEach(emoji => {
-            let div = document.createElement('div');
-            div.className = 'emoji-item';
-            div.innerText = emoji;
-            div.onclick = function() {
-                document.querySelectorAll('.emoji-item').forEach(el => el.classList.remove('selected'));
-                this.classList.add('selected');
-                currentUser.avatar = emoji;
-                socketUser.avatar = emoji;
-                document.getElementById('avatar').innerText = emoji;
-            };
-            grid.appendChild(div);
-        });
-    }
-
-    function switchTab(tab, element) {
-        document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-        element.classList.add('active');
-        document.getElementById('roomsTab').style.display = tab === 'rooms' ? 'block' : 'none';
-        document.getElementById('countriesTab').style.display = tab === 'countries' ? 'block' : 'none';
-        document.getElementById('friendsTab').style.display = tab === 'friends' ? 'block' : 'none';
-    }
-
-    function switchRoom(roomId, element) {
-        document.querySelectorAll('.room-item').forEach(el => el.classList.remove('active'));
-        element.classList.add('active');
-        currentRoom = roomId;
-        let room = rooms[roomId] || privateRooms[roomId];
-        if (!room) return;
-        room.unread = 0;
-        document.getElementById('currentRoomName').innerHTML = room.type === 'public' ? `💬 ${room.name}` : `🔒 ${room.name}`;
-        document.getElementById('onlineCount').innerText = room.users ? room.users.length : 0;
-        updateUsersPopup(room.users || []);
-        loadRoomMessages(roomId);
-    }
-
-    function updateUsersPopup(users) {
-        let list = document.getElementById('usersList');
-        if (!list) return;
-        list.innerHTML = '';
-        users.forEach(user => {
-            let div = document.createElement('div');
-            div.className = 'popup-user-item';
-            div.innerHTML = `<div class="popup-user-avatar" style="background: ${getGradientByTheme(currentUser?.avatarBackground || 'theme-default')}">${user.avatar || '👤'}</div><div class="popup-user-name">${user.name}</div>`;
-            list.appendChild(div);
-        });
-    }
-
-    function loadRoomMessages(roomId) {
-        let area = document.getElementById('messagesArea');
-        area.innerHTML = '';
-        let room = rooms[roomId] || privateRooms[roomId];
-        if (room && room.messages && room.messages.length) {
-            room.messages.forEach(msg => addMessageToUI(msg.author, msg.text, msg.time, msg.author === currentUser.name, msg.avatarBg, msg.id, msg.reactions));
-        } else {
-            addSystemMessage(translations[currentLanguage].welcome);
-        }
-    }
-
-    function switchCountry(country) {
-        let roomId = 'country_' + country;
-        
-        if (!rooms[roomId]) {
-            let countryNames = {
-                'usa': 'США', 'uk': 'Великобритания', 'germany': 'Германия',
-                'france': 'Франция', 'spain': 'Испания', 'italy': 'Италия',
-                'china': 'Китай', 'japan': 'Япония', 'korea': 'Корея',
-                'brazil': 'Бразилия', 'canada': 'Канада', 'australia': 'Австралия',
-                'india': 'Индия', 'russia': 'Россия'
-            };
-            rooms[roomId] = { 
-                name: countryNames[country] || country, 
-                type: 'public', 
-                password: null, 
-                users: [], 
-                messages: [], 
-                unread: 0 
-            };
-        }
-        
-        currentRoom = roomId;
-        document.querySelectorAll('.room-item').forEach(el => el.classList.remove('active'));
-        document.getElementById('currentRoomName').innerHTML = `🌍 ${rooms[roomId].name}`;
-        document.getElementById('onlineCount').innerText = rooms[roomId].users.length;
-        
-        updateUsersPopup(rooms[roomId].users);
-        loadRoomMessages(roomId);
-        
-        joinRoomSocket(roomId);
-    }
-
-    function sendMessage() {
-        let input = document.getElementById('messageInput');
-        let text = input.value.trim();
-        if (!text) return;
-        let time = new Date().toLocaleTimeString();
-        let id = Date.now();
-        let room = rooms[currentRoom] || privateRooms[currentRoom];
-        if (!room) return;
-        if (!room.messages) room.messages = [];
-        let message = { id, author: currentUser.name, text, time, avatarBg: currentUser.avatarBackground, reactions: {} };
-        room.messages.push(message);
-        addMessageToUI(currentUser.name, text, time, true, currentUser.avatarBackground, id);
-        input.value = '';
-        
-        socket.emit('message:send', { text });
-    }
-
-    function addMessageToUI(author, text, time, isOwn, avatarBg, messageId, reactions) {
-        let area = document.getElementById('messagesArea');
-        if (!area) return;
-        
-        let div = document.createElement('div');
-        div.className = 'message' + (isOwn ? ' own' : '');
-        div.id = `msg-${messageId}`;
-        div.setAttribute('data-message-id', messageId);
-        div.setAttribute('data-author', author);
-        
-        if (!currentUser) return;
-        
-        let bgGradient = isOwn ? getGradientByTheme(currentUser.avatarBackground) : getGradientByTheme(avatarBg || 'theme-default');
-        let avatar = isOwn ? (currentUser.avatar || '👤') : '👤';
-        
-        let escapedText = escapeHtml(text);
-        let escapedAuthor = escapeHtml(author);
-        
-        let reactionsHtml = '';
-        if (reactions && typeof reactions === 'object') {
-            for (let [emoji, users] of Object.entries(reactions)) {
-                if (Array.isArray(users)) {
-                    let userReacted = users.includes(currentUser.name);
-                    reactionsHtml += `<span class="reaction-btn ${userReacted ? 'active' : ''}" onclick="toggleReaction(${messageId}, '${emoji}')">${emoji} <span class="reaction-count">${users.length}</span></span>`;
-                }
-            }
-        }
-        
-        let deleteButton = '';
-        if (isOwn || currentUser.isAdmin) {
-            deleteButton = `<span class="delete-message-btn" onclick="deleteMessage('${messageId}', event)">🗑️</span>`;
-        }
-        
-        div.innerHTML = `
-            <div class="message-avatar" style="background: ${bgGradient}">${avatar}</div>
-            <div class="message-content">
-                <div class="message-author">${escapedAuthor}</div>
-                <div class="message-text">${escapedText}</div>
-                <div class="message-reactions" id="reactions-${messageId || ''}">${reactionsHtml}</div>
-                <div class="message-time">${escapeHtml(time || '')}</div>
-                ${deleteButton}
+    <div class="modal" id="devModal">
+        <div class="modal-content">
+            <h3>🔐 Панель разработчика</h3>
+            <p>Введите секретный код:</p>
+            <input type="password" id="devCodeInput" class="auth-input" placeholder="******">
+            <div id="devError" class="status-error" style="display: none;">Неверный код</div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn-secondary" onclick="closeDevModal()">Отмена</button>
+                <button class="btn-primary" onclick="checkDevCode()">Войти</button>
             </div>
-        `;
-        
-        div.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            showDeleteMenuForMessage(e, messageId, author);
+        </div>
+    </div>
+ 
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // ========== ЭМОДЗИ ДЛЯ АВАТАРКИ ==========
+        const avatarEmojis = [
+            '😊', '😎', '🤓', '😇', '🥳', '😍', '🔥', '⭐', 
+            '🦊', '🐼', '🐨', '🦁', '🐱', '🐶', '🐰', '🐸',
+            '🌸', '🌈', '🍕', '🎮'
+        ];
+
+        // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
+        let users = JSON.parse(localStorage.getItem('users')) || [];
+        let currentUser = null;
+        let currentRoom = 'main';
+        let rooms = {
+            main: { name: 'Общая', type: 'public', password: null, users: [], messages: [], unread: 0 },
+            work: { name: 'Работа', type: 'public', password: null, users: [], messages: [], unread: 0 },
+            games: { name: 'Игры', type: 'public', password: null, users: [], messages: [], unread: 0 }
+        };
+        let privateRooms = {};
+        let friends = [];
+        let blacklist = [];
+        let friendRequests = [];
+        let sentRequests = [];
+        let lastRequestTime = 0;
+        const COOLDOWN_TIME = 60000;
+        let messageReactions = {};
+        let pinnedMessages = {};
+        const DEV_CODE = "stasyan2024";
+
+        // ========== ПОДКЛЮЧЕНИЕ К СЕРВЕРУ ==========
+        const socket = io({
+            transports: ['websocket', 'polling'],
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000
         });
-        
-        let pressTimer;
-        div.addEventListener('touchstart', (e) => {
-            pressTimer = setTimeout(() => {
-                e.preventDefault();
-                showDeleteMenuForMessage(e, messageId, author);
-            }, 500);
-        });
-        div.addEventListener('touchend', () => clearTimeout(pressTimer));
-        div.addEventListener('touchmove', () => clearTimeout(pressTimer));
-        
-        if (messageId) {
-            div.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
-                showReactionMenuForMessage(e, messageId);
+
+        // ========== ДАННЫЕ ПОЛЬЗОВАТЕЛЯ ДЛЯ СОКЕТА ==========
+        let socketUser = {
+            name: 'Аноним',
+            country: 'Россия',
+            avatar: '😊'
+        };
+        let socketCurrentRoom = 'main';
+
+        // ========== ОПРЕДЕЛЕНИЕ ЯЗЫКА БРАУЗЕРА ==========
+        function getBrowserLanguage() {
+            let lang = navigator.language || navigator.userLanguage;
+            lang = lang.split('-')[0];
+            const supportedLangs = ['ru', 'en', 'es', 'zh', 'ja', 'ko', 'de', 'fr'];
+            return supportedLangs.includes(lang) ? lang : 'en';
+        }
+
+        // ========== ПЕРЕВОДЫ ==========
+        const translations = {
+            ru: {
+                mainRoom: 'Общая', workRoom: 'Работа', gamesRoom: 'Игры',
+                online: 'онлайн', system: 'Система', welcome: 'Добро пожаловать!',
+                noFriends: 'У вас пока нет друзей', userNotFound: 'Пользователь не найден',
+                requestSent: 'Запрос отправлен!', blacklist: 'ЧЕРНЫЙ СПИСОК',
+                accept: 'Принять', decline: 'Отклонить', delete: 'Удалить',
+                ban: 'В ЧС', message: 'Сообщение', unban: 'Разблокировать',
+                yourCode: 'Ваш код:', enterCode: 'Введите код друга',
+                close: 'Закрыть', send: 'Отправить', create: 'Создать',
+                join: 'Присоединиться', cancel: 'Отмена', save: 'Сохранить',
+                logout: '🚪 Выйти', edit: '✏️ Редактировать',
+                emptyCode: 'Введите код друга', selfCode: 'Нельзя добавить себя',
+                alreadySent: 'Запрос уже отправлен', roomCreated: 'Комната создана!',
+                roomJoined: 'Вы присоединились!', roomNotFound: 'Комната не найдена',
+                confirmDelete: 'Удалить комнату?', roomDeleted: 'Комната удалена',
+                participants: 'Участники', password: 'Пароль', name: 'Название'
+            },
+            en: {
+                mainRoom: 'General', workRoom: 'Work', gamesRoom: 'Games',
+                online: 'online', system: 'System', welcome: 'Welcome!',
+                noFriends: 'You have no friends yet', userNotFound: 'User not found',
+                requestSent: 'Request sent!', blacklist: 'BLACKLIST',
+                accept: 'Accept', decline: 'Decline', delete: 'Delete',
+                ban: 'Block', message: 'Message', unban: 'Unblock',
+                yourCode: 'Your code:', enterCode: 'Enter friend code',
+                close: 'Close', send: 'Send', create: 'Create',
+                join: 'Join', cancel: 'Cancel', save: 'Save',
+                logout: '🚪 Log out', edit: '✏️ Edit',
+                emptyCode: 'Enter friend code', selfCode: 'Cannot add yourself',
+                alreadySent: 'Request already sent', roomCreated: 'Room created!',
+                roomJoined: 'You joined!', roomNotFound: 'Room not found',
+                confirmDelete: 'Delete room?', roomDeleted: 'Room deleted',
+                participants: 'Participants', password: 'Password', name: 'Name'
+            }
+        };
+
+        let currentLanguage = getBrowserLanguage();
+
+        let savedSession = JSON.parse(localStorage.getItem('currentSession'));
+        if (savedSession) {
+            currentUser = savedSession;
+            socketUser = {
+                name: currentUser.name,
+                country: currentUser.country,
+                avatar: currentUser.avatar
+            };
+            showChat();
+        }
+
+        function escapeHtml(unsafe) {
+            if (!unsafe) return '';
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function showTerms() { document.getElementById('termsModal').classList.add('show'); }
+        function closeTerms() { document.getElementById('termsModal').classList.remove('show'); }
+
+        function switchAuthTab(tab) {
+            document.querySelectorAll('.auth-tab').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.auth-form').forEach(el => el.classList.remove('active'));
+            if (tab === 'login') {
+                document.querySelector('.auth-tab').classList.add('active');
+                document.getElementById('loginForm').classList.add('active');
+            } else {
+                document.querySelectorAll('.auth-tab')[1].classList.add('active');
+                document.getElementById('registerForm').classList.add('active');
+            }
+        }
+
+        function quickLogin() {
+            let testUser = {
+                id: Date.now(),
+                username: 'Тестовый',
+                name: 'Тестовый',
+                country: 'Россия',
+                avatar: '😊',
+                avatarBackground: 'theme-default',
+                friendCode: 'TEST' + Math.floor(Math.random() * 1000),
+                isAdmin: false
+            };
+            users.push(testUser);
+            try {
+                let usersJSON = JSON.stringify(users);
+                if (usersJSON.length < 5000000) {
+                    localStorage.setItem('users', JSON.stringify(users));
+                } else {
+                    console.warn('Слишком много данных для localStorage');
+                    let recentUsers = users.slice(-100);
+                    localStorage.setItem('users', JSON.stringify(recentUsers));
+                }
+            } catch (e) {
+                console.error('Ошибка сохранения в localStorage:', e);
+                if (e.name === 'QuotaExceededError') {
+                    let recentUsers = users.slice(-50);
+                    localStorage.setItem('users', JSON.stringify(recentUsers));
+                }
+            }
+            currentUser = testUser;
+            socketUser = { name: testUser.name, country: testUser.country, avatar: testUser.avatar };
+            localStorage.setItem('currentSession', JSON.stringify(currentUser));
+            showChat();
+        }
+
+        function register() {
+            let username = document.getElementById('registerUsername').value.trim();
+            let email = document.getElementById('registerEmail').value.trim();
+            let password = document.getElementById('registerPassword').value;
+            let confirm = document.getElementById('registerConfirmPassword').value;
+            if (!username || !email || !password || !confirm) { alert('Заполните все поля'); return; }
+            if (password !== confirm) { alert('Пароли не совпадают'); return; }
+            let newUser = {
+                id: Date.now(),
+                username: username,
+                email: email,
+                password: password,
+                name: username,
+                country: 'Россия',
+                avatar: '😊',
+                avatarBackground: 'theme-default',
+                friendCode: 'USR' + Math.floor(Math.random() * 1000),
+                isAdmin: false
+            };
+            users.push(newUser);
+            try {
+                let usersJSON = JSON.stringify(users);
+                if (usersJSON.length < 5000000) {
+                    localStorage.setItem('users', JSON.stringify(users)); 
+                } else {
+                    console.warn('Слишком много данных для localStorage');
+                    let recentUsers = users.slice(-100);
+                    localStorage.setItem('users', JSON.stringify(recentUsers));
+                }
+            } catch (e) {
+                console.error('Ошибка сохранения в localStorage:', e);
+                if (e.name === 'QuotaExceededError') {
+                    let recentUsers = users.slice(-50);
+                    localStorage.setItem('users', JSON.stringify(recentUsers));
+                }
+            }
+
+            currentUser = newUser;
+            socketUser = { name: newUser.name, country: newUser.country, avatar: newUser.avatar };
+            localStorage.setItem('currentSession', JSON.stringify(currentUser));
+            alert('Регистрация успешна!');
+            showChat();
+        }
+
+        function login() {
+            let username = document.getElementById('loginUsername').value.trim();
+            let password = document.getElementById('loginPassword').value;
+            let user = users.find(u => u.username === username && u.password === password);
+            if (!user) { alert('Неверное имя или пароль'); return; }
+            currentUser = user;
+            socketUser = { name: user.name, country: user.country, avatar: user.avatar };
+            localStorage.setItem('currentSession', JSON.stringify(currentUser));
+            showChat();
+        }
+
+        function logout() {
+            localStorage.removeItem('currentSession');
+            currentUser = null;
+            document.getElementById('chatApp').classList.remove('show');
+            document.getElementById('authContainer').style.display = 'block';
+        }
+
+        function showChat() {
+            document.getElementById('authContainer').style.display = 'none';
+            document.getElementById('chatApp').classList.add('show');
+            document.getElementById('displayName').innerText = currentUser.name;
+            document.getElementById('displayCountry').innerHTML = getFlag(currentUser.country) + ' ' + currentUser.country;
+            document.getElementById('avatar').innerText = currentUser.avatar;
+            document.getElementById('avatar').style.background = getGradientByTheme(currentUser.avatarBackground || 'theme-default');
+            document.getElementById('inputName').value = currentUser.name;
+            document.getElementById('inputCountry').value = currentUser.country;
+            loadEmojis();
+            applyLanguage();
+            addSystemMessage(translations[currentLanguage].welcome);
+            
+            socket.emit('user:register', socketUser);
+            joinRoomSocket('main');
+        }
+
+        function getFlag(country) {
+            const flags = {
+                'Россия': '🇷🇺', 'США': '🇺🇸', 'Великобритания': '🇬🇧', 'Германия': '🇩🇪',
+                'Франция': '🇫🇷', 'Испания': '🇪🇸', 'Италия': '🇮🇹', 'Китай': '🇨🇳',
+                'Япония': '🇯🇵', 'Корея': '🇰🇷', 'Индия': '🇮🇳', 'Бразилия': '🇧🇷',
+                'Канада': '🇨🇦', 'Мексика': '🇲🇽', 'Аргентина': '🇦🇷', 'Австралия': '🇦🇺',
+                'Египет': '🇪🇬', 'Турция': '🇹🇷', 'Израиль': '🇮🇱', 'ОАЭ': '🇦🇪',
+                'Польша': '🇵🇱', 'Чехия': '🇨🇿', 'Швеция': '🇸🇪', 'Норвегия': '🇳🇴',
+                'Финляндия': '🇫🇮', 'Дания': '🇩🇰', 'Нидерланды': '🇳🇱', 'Бельгия': '🇧🇪',
+                'Швейцария': '🇨🇭', 'Австрия': '🇦🇹', 'Греция': '🇬🇷', 'Португалия': '🇵🇹',
+                'Украина': '🇺🇦', 'Беларусь': '🇧🇾', 'Казахстан': '🇰🇿', 'Узбекистан': '🇺🇿',
+                'Азербайджан': '🇦🇿', 'Грузия': '🇬🇪', 'Армения': '🇦🇲', 'Молдова': '🇲🇩',
+                'Литва': '🇱🇹', 'Латвия': '🇱🇻', 'Эстония': '🇪🇪', 'Польша': '🇵🇱',
+                'Чехия': '🇨🇿', 'Словакия': '🇸🇰', 'Венгрия': '🇭🇺', 'Румыния': '🇷🇴',
+                'Болгария': '🇧🇬', 'Сербия': '🇷🇸', 'Хорватия': '🇭🇷', 'Словения': '🇸🇮',
+                'ЮАР': '🇿🇦', 'Сингапур': '🇸🇬', 'Таиланд': '🇹🇭'
+            };
+            return flags[country] || '🌍';
+        }
+
+        function applyLanguage() {
+            const t = translations[currentLanguage];
+            
+            let mainRoomEl = document.getElementById('mainRoomName');
+            if (mainRoomEl) mainRoomEl.innerText = t.mainRoom;
+            
+            let workRoomEl = document.getElementById('workRoomName');
+            if (workRoomEl) workRoomEl.innerText = t.workRoom;
+            
+            let gamesRoomEl = document.getElementById('gamesRoomName');
+            if (gamesRoomEl) gamesRoomEl.innerText = t.gamesRoom;
+            
+            document.querySelectorAll('.online-text, .online-word, .online-counter span:last-child').forEach(el => {
+                if (el) el.innerText = t.online;
+            });
+            
+            let editProfileBtn = document.querySelector('.edit-profile-btn');
+            if (editProfileBtn) editProfileBtn.innerText = t.edit;
+            
+            let logoutBtn = document.querySelector('.logout-settings-btn');
+            if (logoutBtn) logoutBtn.innerText = t.logout;
+            
+            let saveBtn = document.querySelector('.save-settings');
+            if (saveBtn) saveBtn.innerText = t.save;
+            
+            let privateBtn = document.querySelector('.private-room-btn');
+            if (privateBtn) privateBtn.innerHTML = '🔒 + ' + t.create;
+            
+            updateFriendsList();
+            updateFriendRequests();
+            updateBlacklist();
+            
+            if (currentRoom) {
+                let room = rooms[currentRoom] || privateRooms[currentRoom];
+                if (room) {
+                    let roomNameEl = document.getElementById('currentRoomName');
+                    if (roomNameEl) {
+                        roomNameEl.innerHTML = room.type === 'public' ? `💬 ${room.name}` : `🔒 ${room.name}`;
+                    }
+                }
+            }
+        }
+
+        function toggleSettings() { document.getElementById('profileSettings').classList.toggle('show'); }
+
+        function saveProfile() {
+            currentUser.name = document.getElementById('inputName').value;
+            currentUser.country = document.getElementById('inputCountry').value;
+            
+            document.getElementById('displayName').innerText = currentUser.name;
+            document.getElementById('displayCountry').innerHTML = getFlag(currentUser.country) + ' ' + currentUser.country;
+            
+            socketUser.name = currentUser.name;
+            socketUser.country = currentUser.country;
+            socket.emit('user:register', socketUser);
+            
+            toggleSettings();
+            try {
+                let usersJSON = JSON.stringify(users);
+                if (usersJSON.length < 5000000) {
+                    localStorage.setItem('users', JSON.stringify(users));
+                } else {
+                    console.warn('Слишком много данных для localStorage');
+                    let recentUsers = users.slice(-100);
+                    localStorage.setItem('users', JSON.stringify(recentUsers));
+                }
+            } catch (e) {
+                console.error('Ошибка сохранения в localStorage:', e);
+                if (e.name === 'QuotaExceededError') {
+                    let recentUsers = users.slice(-50);
+                    localStorage.setItem('users', JSON.stringify(recentUsers));
+                }
+            }
+            
+            let userIndex = users.findIndex(u => u.id === currentUser.id);
+            if (userIndex !== -1) {
+                users[userIndex] = currentUser;
+                localStorage.setItem('users', JSON.stringify(users));
+            }
+        }
+
+        function selectAvatarBackground(theme, element) {
+            document.querySelectorAll('.bg-item').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            currentUser.avatarBackground = theme;
+            document.getElementById('avatar').style.background = getGradientByTheme(theme);
+        }
+
+        function getGradientByTheme(theme) {
+            const gradients = {
+                'theme-default': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                'theme-dark': 'linear-gradient(135deg, #2c3e50 0%, #3498db 100%)',
+                'theme-space': 'linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)',
+                'theme-sunset': 'linear-gradient(135deg, #ff6b6b 0%, #feca57 100%)',
+                'theme-forest': 'linear-gradient(135deg, #134e5e 0%, #71b280 100%)',
+                'theme-ocean': 'linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%)',
+                'theme-candy': 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                'theme-aurora': 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                'theme-lavender': 'linear-gradient(135deg, #b993d6 0%, #8ca6db 100%)',
+                'theme-peach': 'linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)',
+                'theme-mint': 'linear-gradient(135deg, #a8e6cf 0%, #d4edf5 100%)',
+                'theme-coral': 'linear-gradient(135deg, #ff6f61 0%, #ff9a8b 100%)',
+                'theme-twilight': 'linear-gradient(135deg, #a8c0ff 0%, #3f2b96 100%)',
+                'theme-spring': 'linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%)',
+                'theme-neon': 'linear-gradient(135deg, #12c2e9 0%, #c471ed 50%, #f64f59 100%)',
+                'theme-berry': 'linear-gradient(135deg, #ee9ca7 0%, #ffdde1 100%)'
+            };
+            return gradients[theme] || gradients['theme-default'];
+        }
+
+        function loadEmojis() {
+            let grid = document.getElementById('emojiGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            avatarEmojis.forEach(emoji => {
+                let div = document.createElement('div');
+                div.className = 'emoji-item';
+                div.innerText = emoji;
+                div.onclick = function() {
+                    document.querySelectorAll('.emoji-item').forEach(el => el.classList.remove('selected'));
+                    this.classList.add('selected');
+                    currentUser.avatar = emoji;
+                    socketUser.avatar = emoji;
+                    document.getElementById('avatar').innerText = emoji;
+                };
+                grid.appendChild(div);
             });
         }
-        
-        area.appendChild(div);
-        area.scrollTop = area.scrollHeight;
-    }
 
-    function addSystemMessage(text) {
-        let area = document.getElementById('messagesArea');
-        let div = document.createElement('div');
-        div.className = 'message';
-        div.innerHTML = `<div class="message-avatar" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">🤖</div><div class="message-content">${text}</div>`;
-        area.appendChild(div);
-    }
+        function switchTab(tab, element) {
+            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            document.getElementById('roomsTab').style.display = tab === 'rooms' ? 'block' : 'none';
+            document.getElementById('countriesTab').style.display = tab === 'countries' ? 'block' : 'none';
+            document.getElementById('friendsTab').style.display = tab === 'friends' ? 'block' : 'none';
+        }
 
-    // ========== УДАЛЕНИЕ СООБЩЕНИЙ ==========
-    function deleteMessage(messageId, event) {
-        if (event) {
-            event.preventDefault();
+        function switchRoom(roomId, element) {
+            document.querySelectorAll('.room-item').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            currentRoom = roomId;
+            let room = rooms[roomId] || privateRooms[roomId];
+            if (!room) return;
+            room.unread = 0;
+            document.getElementById('currentRoomName').innerHTML = room.type === 'public' ? `💬 ${room.name}` : `🔒 ${room.name}`;
+            document.getElementById('onlineCount').innerText = room.users ? room.users.length : 0;
+            updateUsersPopup(room.users || []);
+            loadRoomMessages(roomId);
+        }
+
+        function updateUsersPopup(users) {
+            let list = document.getElementById('usersList');
+            if (!list) return;
+            list.innerHTML = '';
+            users.forEach(user => {
+                let div = document.createElement('div');
+                div.className = 'popup-user-item';
+                div.innerHTML = `<div class="popup-user-avatar" style="background: ${getGradientByTheme(currentUser?.avatarBackground || 'theme-default')}">${user.avatar || '👤'}</div><div class="popup-user-name">${user.name}</div>`;
+                list.appendChild(div);
+            });
+        }
+
+        function loadRoomMessages(roomId) {
+            let area = document.getElementById('messagesArea');
+            area.innerHTML = '';
+            let room = rooms[roomId] || privateRooms[roomId];
+            if (room && room.messages && room.messages.length) {
+                room.messages.forEach(msg => {
+                    addMessageToUI(
+                        msg.author, 
+                        msg.text, 
+                        msg.time, 
+                        msg.author === currentUser.name, 
+                        msg.avatarBg, 
+                        msg.id, 
+                        msg.reactions,
+                        msg.avatar
+                    );
+                });
+            } else {
+                addSystemMessage(translations[currentLanguage].welcome);
+            }
+        }
+
+        function switchCountry(country) {
+            let roomId = 'country_' + country;
+            
+            if (!rooms[roomId]) {
+                let countryNames = {
+                    'usa': 'США', 'uk': 'Великобритания', 'germany': 'Германия',
+                    'france': 'Франция', 'spain': 'Испания', 'italy': 'Италия',
+                    'china': 'Китай', 'japan': 'Япония', 'korea': 'Корея',
+                    'brazil': 'Бразилия', 'canada': 'Канада', 'australia': 'Австралия',
+                    'india': 'Индия', 'russia': 'Россия'
+                };
+                rooms[roomId] = { 
+                    name: countryNames[country] || country, 
+                    type: 'public', 
+                    password: null, 
+                    users: [], 
+                    messages: [], 
+                    unread: 0 
+                };
+            }
+            
+            currentRoom = roomId;
+            document.querySelectorAll('.room-item').forEach(el => el.classList.remove('active'));
+            document.getElementById('currentRoomName').innerHTML = `🌍 ${rooms[roomId].name}`;
+            document.getElementById('onlineCount').innerText = rooms[roomId].users.length;
+            
+            updateUsersPopup(rooms[roomId].users);
+            loadRoomMessages(roomId);
+            
+            joinRoomSocket(roomId);
+        }
+
+        function sendMessage() {
+            let input = document.getElementById('messageInput');
+            let text = input.value.trim();
+            if (!text) return;
+            
+            let time = new Date().toLocaleTimeString();
+            let tempId = 'temp_' + Date.now();
+            
+            addMessageToUI(
+                currentUser.name, 
+                text, 
+                time, 
+                true, 
+                currentUser.avatarBackground, 
+                tempId, 
+                {}, 
+                currentUser.avatar
+            );
+            
+            input.value = '';
+            
+            socket.emit('message:send', { 
+                text, 
+                tempId: tempId
+            });
+        }
+
+        function addMessageToUI(author, text, time, isOwn, avatarBg, messageId, reactions, authorAvatar) {
+            let area = document.getElementById('messagesArea');
+            if (!area) return;
+            
+            let div = document.createElement('div');
+            div.className = 'message' + (isOwn ? ' own' : '');
+            div.id = `msg-${messageId}`;
+            div.setAttribute('data-message-id', messageId);
+            div.setAttribute('data-author', author);
+            
+            if (!currentUser) return;
+            
+            let bgGradient = isOwn 
+                ? getGradientByTheme(currentUser.avatarBackground) 
+                : getGradientByTheme(avatarBg || 'theme-default');
+            
+            let avatar = isOwn 
+                ? (currentUser.avatar || '👤') 
+                : (authorAvatar || '👤');
+            
+            let escapedText = escapeHtml(text);
+            let escapedAuthor = escapeHtml(author);
+            
+            let reactionsHtml = '';
+            if (reactions && typeof reactions === 'object') {
+                for (let [emoji, users] of Object.entries(reactions)) {
+                    if (Array.isArray(users)) {
+                        let userReacted = users.includes(currentUser.name);
+                        reactionsHtml += `<span class="reaction-btn ${userReacted ? 'active' : ''}" onclick="toggleReaction(${messageId}, '${emoji}')">${emoji} <span class="reaction-count">${users.length}</span></span>`;
+                    }
+                }
+            }
+            
+            let deleteButton = '';
+            if (isOwn || currentUser.isAdmin || currentUser.isDev) {
+                deleteButton = `<span class="delete-message-btn" onclick="deleteMessage('${messageId}', event)">🗑️</span>`;
+            }
+            
+            div.innerHTML = `
+                <div class="message-avatar" style="background: ${bgGradient}">${avatar}</div>
+                <div class="message-content">
+                    <div class="message-author">${escapedAuthor}</div>
+                    <div class="message-text">${escapedText}</div>
+                    <div class="message-reactions" id="reactions-${messageId || ''}">${reactionsHtml}</div>
+                    <div class="message-time">${escapeHtml(time || '')}</div>
+                    ${deleteButton}
+                </div>
+            `;
+            
+            div.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                if (isOwn || currentUser.isAdmin || currentUser.isDev) {
+                    showDeleteMenuForMessage(e, messageId, author);
+                }
+            });
+            
+            let pressTimer;
+            div.addEventListener('touchstart', (e) => {
+                pressTimer = setTimeout(() => {
+                    e.preventDefault();
+                    if (isOwn || currentUser.isAdmin || currentUser.isDev) {
+                        showDeleteMenuForMessage(e, messageId, author);
+                    }
+                }, 500);
+            });
+            div.addEventListener('touchend', () => clearTimeout(pressTimer));
+            div.addEventListener('touchmove', () => clearTimeout(pressTimer));
+            
+            if (messageId) {
+                div.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    showReactionMenuForMessage(e, messageId);
+                });
+            }
+            
+            area.appendChild(div);
+            area.scrollTop = area.scrollHeight;
+        }
+
+        function addSystemMessage(text) {
+            let area = document.getElementById('messagesArea');
+            let div = document.createElement('div');
+            div.className = 'message';
+            div.innerHTML = `<div class="message-avatar" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">🤖</div><div class="message-content">${text}</div>`;
+            area.appendChild(div);
+        }
+
+        function deleteMessage(messageId, event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            if (!currentUser) return;
+            
+            let messageElement = document.getElementById(`msg-${messageId}`);
+            if (!messageElement) return;
+            
+            let author = messageElement.getAttribute('data-author');
+            
+            if (author !== currentUser.name && !currentUser.isAdmin && !currentUser.isDev) {
+                alert('Вы можете удалять только свои сообщения');
+                return;
+            }
+            
+            if (confirm('Удалить это сообщение?')) {
+                let room = rooms[currentRoom] || privateRooms[currentRoom];
+                if (room && room.messages) {
+                    room.messages = room.messages.filter(msg => msg.id != messageId && !msg.id.includes('temp_'));
+                }
+                
+                if (messageReactions[messageId]) {
+                    delete messageReactions[messageId];
+                }
+                
+                messageElement.remove();
+                
+                socket.emit('message:delete', {
+                    messageId: messageId,
+                    roomId: currentRoom
+                });
+            }
+        }
+
+        function showDeleteMenuForMessage(e, messageId, author) {
+            if (!currentUser) return;
+            
+            if (author !== currentUser.name && !currentUser.isAdmin && !currentUser.isDev) return;
+            
+            let menu = document.createElement('div');
+            menu.style.position = 'absolute';
+            menu.style.background = 'white';
+            menu.style.borderRadius = '20px';
+            menu.style.padding = '10px';
+            menu.style.boxShadow = '0 5px 20px rgba(0,0,0,0.2)';
+            menu.style.zIndex = '5000';
+            menu.style.display = 'flex';
+            menu.style.flexDirection = 'column';
+            menu.style.gap = '5px';
+            
+            let deleteBtn = document.createElement('button');
+            deleteBtn.innerText = '🗑️ Удалить сообщение';
+            deleteBtn.style.padding = '8px 15px';
+            deleteBtn.style.border = 'none';
+            deleteBtn.style.borderRadius = '10px';
+            deleteBtn.style.background = '#dc3545';
+            deleteBtn.style.color = 'white';
+            deleteBtn.style.cursor = 'pointer';
+            deleteBtn.style.fontSize = '14px';
+            deleteBtn.onclick = () => {
+                deleteMessage(messageId, e);
+                menu.remove();
+            };
+            
+            menu.appendChild(deleteBtn);
+            document.body.appendChild(menu);
+            menu.style.left = e.pageX + 'px';
+            menu.style.top = e.pageY + 'px';
+            
+            setTimeout(() => {
+                if (menu.parentNode) menu.remove();
+            }, 3000);
+            
+            setTimeout(() => {
+                document.addEventListener('click', function closeMenu(clickEvent) {
+                    if (!menu.contains(clickEvent.target)) {
+                        menu.remove();
+                        document.removeEventListener('click', closeMenu);
+                    }
+                });
+            }, 100);
+        }
+
+        function toggleReaction(messageId, emoji) {
+            if (!currentUser) return;
+            
+            if (!messageReactions[messageId]) messageReactions[messageId] = {};
+            if (!messageReactions[messageId][emoji]) messageReactions[messageId][emoji] = [];
+            
+            let index = messageReactions[messageId][emoji].indexOf(currentUser.name);
+            if (index === -1) {
+                messageReactions[messageId][emoji].push(currentUser.name);
+            } else {
+                messageReactions[messageId][emoji].splice(index, 1);
+                if (messageReactions[messageId][emoji].length === 0) {
+                    delete messageReactions[messageId][emoji];
+                }
+            }
+            
+            if (Object.keys(messageReactions[messageId]).length === 0) {
+                delete messageReactions[messageId];
+            }
+            
+            updateReactions(messageId);
+        }
+
+        function updateReactions(messageId) {
+            let div = document.getElementById(`reactions-${messageId}`);
+            if (!div) return;
+            div.innerHTML = '';
+            if (messageReactions[messageId]) {
+                for (let [emoji, users] of Object.entries(messageReactions[messageId])) {
+                    let userReacted = users.includes(currentUser.name);
+                    div.innerHTML += `<span class="reaction-btn ${userReacted ? 'active' : ''}" onclick="toggleReaction(${messageId}, '${emoji}')">${emoji} <span class="reaction-count">${users.length}</span></span>`;
+                }
+            }
+        }
+
+        function showReactionMenuForMessage(e, messageId) {
+            let menu = document.createElement('div');
+            menu.style.position = 'absolute';
+            menu.style.background = 'white';
+            menu.style.borderRadius = '20px';
+            menu.style.padding = '10px';
+            menu.style.boxShadow = '0 5px 20px rgba(0,0,0,0.2)';
+            menu.style.zIndex = '5000';
+            menu.style.display = 'flex';
+            menu.style.gap = '5px';
+            
+            let reactions = ['👍', '❤️', '😂', '😮', '😢', '😡'];
+            reactions.forEach(r => {
+                let btn = document.createElement('span');
+                btn.innerText = r;
+                btn.style.fontSize = '24px';
+                btn.style.cursor = 'pointer';
+                btn.style.padding = '5px';
+                btn.onclick = () => {
+                    toggleReaction(messageId, r);
+                    menu.remove();
+                };
+                menu.appendChild(btn);
+            });
+            
+            document.body.appendChild(menu);
+            menu.style.left = e.pageX + 'px';
+            menu.style.top = e.pageY + 'px';
+            
+            setTimeout(() => menu.remove(), 3000);
+        }
+
+        function openPrivateModal() {
+            document.getElementById('privateModal').classList.add('show');
+            document.getElementById('modalTitle').innerText = translations[currentLanguage].create;
+            document.getElementById('modalActionBtn').innerText = translations[currentLanguage].create;
+            document.getElementById('modalActionBtn').setAttribute('onclick', 'createPrivateRoom()');
+        }
+
+        function closePrivateModal() { document.getElementById('privateModal').classList.remove('show'); }
+
+        function switchToJoinMode() {
+            document.getElementById('modalTitle').innerText = translations[currentLanguage].join;
+            document.getElementById('modalActionBtn').innerText = translations[currentLanguage].join;
+            document.getElementById('modalActionBtn').setAttribute('onclick', 'joinPrivateRoom()');
+        }
+
+        function createPrivateRoom() {
+            let name = document.getElementById('roomNameInput').value.trim();
+            let pass = document.getElementById('roomPasswordInput').value.trim();
+            let t = translations[currentLanguage];
+            if (!name || !pass) { alert('Введите название и пароль'); return; }
+            let id = 'priv_' + Date.now();
+            privateRooms[id] = { name, password: pass, type: 'private', users: [{ name: currentUser.name, avatar: currentUser.avatar, online: true }], messages: [] };
+            addPrivateRoomToSidebar(id, name);
+            closePrivateModal();
+            document.getElementById('roomNameInput').value = '';
+            document.getElementById('roomPasswordInput').value = '';
+            alert(t.roomCreated);
+            let element = document.querySelector(`[data-roomid="${id}"]`);
+            if (element) switchPrivateRoom(id, element);
+        }
+
+        function joinPrivateRoom() {
+            let name = document.getElementById('roomNameInput').value.trim();
+            let pass = document.getElementById('roomPasswordInput').value.trim();
+            let t = translations[currentLanguage];
+            for (let id in privateRooms) {
+                if (privateRooms[id].name === name && privateRooms[id].password === pass) {
+                    if (!privateRooms[id].users.some(u => u.name === currentUser.name)) {
+                        privateRooms[id].users.push({ name: currentUser.name, avatar: currentUser.avatar, online: true });
+                    }
+                    addPrivateRoomToSidebar(id, name);
+                    closePrivateModal();
+                    document.getElementById('roomNameInput').value = '';
+                    document.getElementById('roomPasswordInput').value = '';
+                    alert(t.roomJoined);
+                    let element = document.querySelector(`[data-roomid="${id}"]`);
+                    if (element) switchPrivateRoom(id, element);
+                    return;
+                }
+            }
+            alert(t.roomNotFound);
+        }
+
+        function addPrivateRoomToSidebar(id, name) {
+            let container = document.getElementById('privateRoomsList');
+            if (!container) return;
+            if (document.querySelector(`[data-roomid="${id}"]`)) return;
+            let div = document.createElement('div');
+            div.className = 'room-item';
+            div.setAttribute('data-roomid', id);
+            div.innerHTML = `🔒 ${name} <span class="room-users">(👥 ${privateRooms[id].users.length})</span> <button class="delete-room-btn" onclick="deletePrivateRoom('${id}', event)">✖</button>`;
+            div.onclick = (e) => {
+                if (e.target.tagName !== 'BUTTON') switchPrivateRoom(id, div);
+            };
+            container.appendChild(div);
+        }
+
+        function deletePrivateRoom(id, event) {
             event.stopPropagation();
+            let t = translations[currentLanguage];
+            if (confirm(t.confirmDelete)) {
+                delete privateRooms[id];
+                let el = document.querySelector(`[data-roomid="${id}"]`);
+                if (el) el.remove();
+                if (currentRoom === id) switchRoom('main', document.querySelector('.room-item[onclick*="main"]'));
+                alert(t.roomDeleted);
+            }
         }
-        
-        if (!currentUser) return;
-        
-        let messageElement = document.getElementById(`msg-${messageId}`);
-        if (!messageElement) return;
-        
-        let author = messageElement.getAttribute('data-author');
-        
-        if (author !== currentUser.name && !currentUser.isAdmin) {
-            alert('Вы можете удалять только свои сообщения');
-            return;
+
+        function switchPrivateRoom(id, element) {
+            switchRoom(id, element);
         }
-        
-        if (confirm('Удалить это сообщение?')) {
+
+        function openRoomSettings() {
+            let room = rooms[currentRoom] || privateRooms[currentRoom];
+            if (!room) return;
+            let t = translations[currentLanguage];
+            let usersList = room.users ? room.users.map(u => u.name).join(', ') : 'Нет участников';
+            let passwordDisplay = room.password ? room.password : (room.type === 'public' ? 'Публичная' : 'Нет пароля');
+            document.getElementById('roomInfo').innerHTML = `
+                <div class="room-info-item"><strong>${t.name}:</strong> ${room.name}</div>
+                <div class="room-info-item"><strong>${t.password}:</strong> ${passwordDisplay}</div>
+                <div class="room-info-item"><strong>${t.participants} (${room.users ? room.users.length : 0}):</strong> ${usersList}</div>
+            `;
+            document.getElementById('roomSettingsModal').classList.add('show');
+        }
+
+        function closeRoomSettings() { document.getElementById('roomSettingsModal').classList.remove('show'); }
+
+        function openAddFriendModal() {
+            document.getElementById('addFriendModal').classList.add('show');
+            document.getElementById('userFriendCode').innerText = currentUser.friendCode;
+            document.getElementById('friendRequestStatus').innerText = '';
+            document.getElementById('friendRequestStatus').className = 'status-error';
+            document.getElementById('friendCodeInput').value = '';
+        }
+
+        function closeAddFriendModal() { document.getElementById('addFriendModal').classList.remove('show'); }
+
+        function sendFriendRequest() {
+            let code = document.getElementById('friendCodeInput').value.trim().toUpperCase();
+            let t = translations[currentLanguage];
+            let status = document.getElementById('friendRequestStatus');
+            
+            if (!code) { 
+                status.innerText = t.emptyCode; 
+                status.className = 'status-error';
+                return; 
+            }
+            if (code === currentUser.friendCode) { 
+                status.innerText = t.selfCode; 
+                status.className = 'status-error';
+                return; 
+            }
+            
+            let foundUser = users.find(u => u.friendCode === code);
+            if (!foundUser) { 
+                status.innerText = t.userNotFound; 
+                status.className = 'status-error';
+                return; 
+            }
+            
+            if (sentRequests.some(r => r.code === code)) { 
+                status.innerText = t.alreadySent; 
+                status.className = 'status-error';
+                return; 
+            }
+            
+            sentRequests.push({ code, name: foundUser.name, avatar: foundUser.avatar });
+            status.innerText = t.requestSent;
+            status.className = 'status-success';
+            
+            setTimeout(() => {
+                if (!friendRequests.some(r => r.code === code)) {
+                    friendRequests.push({ name: foundUser.name, avatar: foundUser.avatar, code });
+                    updateFriendRequests();
+                }
+            }, 2000);
+        }
+
+        function updateFriendRequests() {
+            let div = document.getElementById('friendRequests');
+            if (!div) return;
+            let t = translations[currentLanguage];
+            if (!friendRequests.length) { div.innerHTML = ''; return; }
+            div.innerHTML = '<div class="rooms-title">ЗАПРОСЫ</div>';
+            friendRequests.forEach((req, i) => {
+                div.innerHTML += `
+                    <div class="friend-request">
+                        <div class="friend-avatar">${req.avatar}</div>
+                        <div class="friend-name">${req.name}</div>
+                        <div class="request-buttons">
+                            <button class="accept-btn" onclick="acceptRequest(${i})">${t.accept}</button>
+                            <button class="decline-btn" onclick="declineRequest(${i})">${t.decline}</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function acceptRequest(i) {
+            let req = friendRequests[i];
+            friends.push({ ...req, online: true, lastSeen: 'только что' });
+            friendRequests.splice(i, 1);
+            updateFriendRequests();
+            updateFriendsList();
+        }
+
+        function declineRequest(i) { friendRequests.splice(i, 1); updateFriendRequests(); }
+
+        function updateFriendsList() {
+            let div = document.getElementById('friendsList');
+            let t = translations[currentLanguage];
+            if (!friends.length) { div.innerHTML = `<div style="text-align:center;padding:20px">${t.noFriends}</div>`; return; }
+            div.innerHTML = '';
+            friends.forEach((f, i) => {
+                div.innerHTML += `
+                    <div class="friend-item">
+                        <div class="friend-avatar ${f.online ? 'online' : ''}">${f.avatar}</div>
+                        <div class="friend-info">
+                            <div class="friend-name">${f.name}</div>
+                            <div class="friend-status ${f.online ? '' : 'offline'}">${f.online ? '🟢 ' + t.online : '⚫ ' + t.offline}</div>
+                        </div>
+                        <div class="friend-actions">
+                            <button class="friend-action-btn message" onclick="openPrivateChat(${i})">💬</button>
+                            <button class="friend-action-btn delete" onclick="deleteFriend(${i})">🗑️</button>
+                            <button class="friend-action-btn ban" onclick="banFriend(${i})">⛔</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function deleteFriend(i) { friends.splice(i, 1); updateFriendsList(); }
+
+        function banFriend(i) {
+            let banned = friends[i];
+            blacklist.push(banned);
+            friends.splice(i, 1);
+            updateFriendsList();
+            updateBlacklist();
+        }
+
+        function updateBlacklist() {
+            let div = document.getElementById('blacklist');
+            let t = translations[currentLanguage];
+            if (!blacklist.length) { div.innerHTML = ''; return; }
+            div.innerHTML = '<div class="rooms-title">' + t.blacklist + '</div>';
+            blacklist.forEach((u, i) => {
+                div.innerHTML += `
+                    <div class="friend-item">
+                        <div class="friend-avatar">${u.avatar}</div>
+                        <div class="friend-name">${u.name}</div>
+                        <button class="friend-action-btn" onclick="unbanUser(${i})">↩️</button>
+                    </div>
+                `;
+            });
+        }
+
+        function unbanUser(i) {
+            let unbanned = blacklist[i];
+            friends.push({ ...unbanned, online: false, lastSeen: 'разблокирован' });
+            blacklist.splice(i, 1);
+            updateFriendsList();
+            updateBlacklist();
+        }
+
+        let currentPrivateChat = null;
+        function openPrivateChat(i) {
+            let friend = friends[i];
+            currentPrivateChat = friend;
+            document.getElementById('privateChatName').innerText = `Чат с ${friend.name}`;
+            document.getElementById('privateChat').classList.add('show');
+            document.getElementById('privateChatMessages').innerHTML = '';
+        }
+
+        function closePrivateChat() {
+            document.getElementById('privateChat').classList.remove('show');
+            currentPrivateChat = null;
+        }
+
+        function sendPrivateMessage() {
+            let input = document.getElementById('privateChatInput');
+            let text = input.value.trim();
+            if (!text || !currentPrivateChat) return;
+            let div = document.createElement('div');
+            div.className = 'message own';
+            div.innerHTML = `<div class="message-content">${text}<div class="message-time">только что</div></div>`;
+            document.getElementById('privateChatMessages').appendChild(div);
+            input.value = '';
+        }
+
+        function toggleEmojiPicker() { document.getElementById('emojiPicker').classList.toggle('show'); }
+        function addEmoji(emoji) { document.getElementById('messageInput').value += emoji; }
+
+        function toggleUsersPopup() { document.getElementById('usersPopup').classList.toggle('show'); }
+
+        function joinRoomSocket(roomId) {
+            if (!socket) return;
+            
+            socketCurrentRoom = roomId;
+            socket.emit('room:join', roomId, (data) => {
+                if (data && data.error) {
+                    console.error('Ошибка подключения к комнате:', data.error);
+                    addSystemMessage('Ошибка подключения к комнате');
+                    return;
+                }
+                
+                let messagesArea = document.getElementById('messagesArea');
+                if (messagesArea) messagesArea.innerHTML = '';
+                
+                if (data && data.messages && Array.isArray(data.messages) && data.messages.length > 0) {
+                    data.messages.forEach(msg => {
+                        if (msg && msg.author && msg.text) {
+                            addMessageToUI(
+                                msg.author, 
+                                msg.text, 
+                                msg.time, 
+                                msg.author === currentUser?.name, 
+                                msg.avatarBg, 
+                                msg.id, 
+                                msg.reactions,
+                                msg.avatar
+                            );
+                        }
+                    });
+                } else {
+                    addSystemMessage(translations[currentLanguage].welcome);
+                }
+                
+                let onlineEl = document.getElementById('onlineCount');
+                if (onlineEl) onlineEl.innerText = (data && data.users && data.users.length) ? data.users.length : 0;
+                
+                if (data && data.users) {
+                    updateUsersListSocket(data.users);
+                }
+            });
+        }
+
+        socket.on('message:new', (message) => {
+            if (!currentUser) return;
+            if (message && message.author !== currentUser.name) {
+                addMessageToUI(
+                    message.author, 
+                    message.text, 
+                    message.time, 
+                    false, 
+                    message.avatarBg, 
+                    message.id, 
+                    message.reactions,
+                    message.avatar
+                );
+            }
+        });
+
+        socket.on('message:saved', (data) => {
+            let tempElement = document.getElementById(`msg-${data.tempId}`);
+            if (tempElement) {
+                tempElement.id = `msg-${data.realId}`;
+                tempElement.setAttribute('data-message-id', data.realId);
+                
+                let deleteBtn = tempElement.querySelector('.delete-message-btn');
+                if (deleteBtn) {
+                    deleteBtn.setAttribute('onclick', `deleteMessage('${data.realId}', event)`);
+                }
+            }
+        });
+
+        socket.on('online:update', (count) => {
+            let el = document.getElementById('onlineCount');
+            if (el) el.innerText = count || 0;
+        });
+
+        socket.on('user:joined', (userName) => {
+            if (!currentUser || !userName) return;
+            if (userName !== currentUser.name) {
+                addSystemMessage(`${userName} присоединился к чату`);
+            }
+        });
+
+        socket.on('user:left', (userName) => {
+            if (!currentUser || !userName) return;
+            if (userName !== currentUser.name) {
+                addSystemMessage(`${userName} покинул чат`);
+            }
+        });
+
+        socket.on('message:deleted', (data) => {
+            const { messageId } = data;
+            let messageElement = document.getElementById(`msg-${messageId}`);
+            if (messageElement) {
+                messageElement.remove();
+            }
+            
             let room = rooms[currentRoom] || privateRooms[currentRoom];
             if (room && room.messages) {
                 room.messages = room.messages.filter(msg => msg.id != messageId);
@@ -2466,512 +3105,156 @@
             if (messageReactions[messageId]) {
                 delete messageReactions[messageId];
             }
-            
-            messageElement.remove();
-            
-            socket.emit('message:delete', {
-                messageId: messageId,
-                roomId: currentRoom
-            });
-        }
-    }
-
-    function showDeleteMenuForMessage(e, messageId, author) {
-        if (!currentUser) return;
-        
-        if (author !== currentUser.name && !currentUser.isAdmin) return;
-        
-        let menu = document.createElement('div');
-        menu.style.position = 'absolute';
-        menu.style.background = 'white';
-        menu.style.borderRadius = '20px';
-        menu.style.padding = '10px';
-        menu.style.boxShadow = '0 5px 20px rgba(0,0,0,0.2)';
-        menu.style.zIndex = '5000';
-        menu.style.display = 'flex';
-        menu.style.flexDirection = 'column';
-        menu.style.gap = '5px';
-        
-        let deleteBtn = document.createElement('button');
-        deleteBtn.innerText = '🗑️ Удалить сообщение';
-        deleteBtn.style.padding = '8px 15px';
-        deleteBtn.style.border = 'none';
-        deleteBtn.style.borderRadius = '10px';
-        deleteBtn.style.background = '#dc3545';
-        deleteBtn.style.color = 'white';
-        deleteBtn.style.cursor = 'pointer';
-        deleteBtn.style.fontSize = '14px';
-        deleteBtn.onclick = () => {
-            deleteMessage(messageId, e);
-            menu.remove();
-        };
-        
-        menu.appendChild(deleteBtn);
-        document.body.appendChild(menu);
-        menu.style.left = e.pageX + 'px';
-        menu.style.top = e.pageY + 'px';
-        
-        setTimeout(() => {
-            if (menu.parentNode) menu.remove();
-        }, 3000);
-        
-        setTimeout(() => {
-            document.addEventListener('click', function closeMenu(clickEvent) {
-                if (!menu.contains(clickEvent.target)) {
-                    menu.remove();
-                    document.removeEventListener('click', closeMenu);
-                }
-            });
-        }, 100);
-    }
-
-    function toggleReaction(messageId, emoji) {
-        if (!currentUser) return;
-        
-        if (!messageReactions[messageId]) messageReactions[messageId] = {};
-        if (!messageReactions[messageId][emoji]) messageReactions[messageId][emoji] = [];
-        
-        let index = messageReactions[messageId][emoji].indexOf(currentUser.name);
-        if (index === -1) {
-            messageReactions[messageId][emoji].push(currentUser.name);
-        } else {
-            messageReactions[messageId][emoji].splice(index, 1);
-            if (messageReactions[messageId][emoji].length === 0) {
-                delete messageReactions[messageId][emoji];
-            }
-        }
-        
-        if (Object.keys(messageReactions[messageId]).length === 0) {
-            delete messageReactions[messageId];
-        }
-        
-        updateReactions(messageId);
-    }
-
-    function updateReactions(messageId) {
-        let div = document.getElementById(`reactions-${messageId}`);
-        if (!div) return;
-        div.innerHTML = '';
-        if (messageReactions[messageId]) {
-            for (let [emoji, users] of Object.entries(messageReactions[messageId])) {
-                let userReacted = users.includes(currentUser.name);
-                div.innerHTML += `<span class="reaction-btn ${userReacted ? 'active' : ''}" onclick="toggleReaction(${messageId}, '${emoji}')">${emoji} <span class="reaction-count">${users.length}</span></span>`;
-            }
-        }
-    }
-
-    function showReactionMenuForMessage(e, messageId) {
-        let menu = document.createElement('div');
-        menu.style.position = 'absolute';
-        menu.style.background = 'white';
-        menu.style.borderRadius = '20px';
-        menu.style.padding = '10px';
-        menu.style.boxShadow = '0 5px 20px rgba(0,0,0,0.2)';
-        menu.style.zIndex = '5000';
-        menu.style.display = 'flex';
-        menu.style.gap = '5px';
-        
-        let reactions = ['👍', '❤️', '😂', '😮', '😢', '😡'];
-        reactions.forEach(r => {
-            let btn = document.createElement('span');
-            btn.innerText = r;
-            btn.style.fontSize = '24px';
-            btn.style.cursor = 'pointer';
-            btn.style.padding = '5px';
-            btn.onclick = () => {
-                toggleReaction(messageId, r);
-                menu.remove();
-            };
-            menu.appendChild(btn);
         });
-        
-        document.body.appendChild(menu);
-        menu.style.left = e.pageX + 'px';
-        menu.style.top = e.pageY + 'px';
-        
-        setTimeout(() => menu.remove(), 3000);
-    }
 
-    // ========== ПРИВАТНЫЕ КОМНАТЫ ==========
-    function openPrivateModal() {
-        document.getElementById('privateModal').classList.add('show');
-        document.getElementById('modalTitle').innerText = translations[currentLanguage].create;
-        document.getElementById('modalActionBtn').innerText = translations[currentLanguage].create;
-        document.getElementById('modalActionBtn').setAttribute('onclick', 'createPrivateRoom()');
-    }
-
-    function closePrivateModal() { document.getElementById('privateModal').classList.remove('show'); }
-
-    function switchToJoinMode() {
-        document.getElementById('modalTitle').innerText = translations[currentLanguage].join;
-        document.getElementById('modalActionBtn').innerText = translations[currentLanguage].join;
-        document.getElementById('modalActionBtn').setAttribute('onclick', 'joinPrivateRoom()');
-    }
-
-    function createPrivateRoom() {
-        let name = document.getElementById('roomNameInput').value.trim();
-        let pass = document.getElementById('roomPasswordInput').value.trim();
-        let t = translations[currentLanguage];
-        if (!name || !pass) { alert('Введите название и пароль'); return; }
-        let id = 'priv_' + Date.now();
-        privateRooms[id] = { name, password: pass, type: 'private', users: [{ name: currentUser.name, avatar: currentUser.avatar, online: true }], messages: [] };
-        addPrivateRoomToSidebar(id, name);
-        closePrivateModal();
-        document.getElementById('roomNameInput').value = '';
-        document.getElementById('roomPasswordInput').value = '';
-        alert(t.roomCreated);
-        let element = document.querySelector(`[data-roomid="${id}"]`);
-        if (element) switchPrivateRoom(id, element);
-    }
-
-    function joinPrivateRoom() {
-        let name = document.getElementById('roomNameInput').value.trim();
-        let pass = document.getElementById('roomPasswordInput').value.trim();
-        let t = translations[currentLanguage];
-        for (let id in privateRooms) {
-            if (privateRooms[id].name === name && privateRooms[id].password === pass) {
-                if (!privateRooms[id].users.some(u => u.name === currentUser.name)) {
-                    privateRooms[id].users.push({ name: currentUser.name, avatar: currentUser.avatar, online: true });
-                }
-                addPrivateRoomToSidebar(id, name);
-                closePrivateModal();
-                document.getElementById('roomNameInput').value = '';
-                document.getElementById('roomPasswordInput').value = '';
-                alert(t.roomJoined);
-                let element = document.querySelector(`[data-roomid="${id}"]`);
-                if (element) switchPrivateRoom(id, element);
-                return;
-            }
-        }
-        alert(t.roomNotFound);
-    }
-
-    function addPrivateRoomToSidebar(id, name) {
-        let container = document.getElementById('privateRoomsList');
-        if (!container) return;
-        if (document.querySelector(`[data-roomid="${id}"]`)) return;
-        let div = document.createElement('div');
-        div.className = 'room-item';
-        div.setAttribute('data-roomid', id);
-        div.innerHTML = `🔒 ${name} <span class="room-users">(👥 ${privateRooms[id].users.length})</span> <button class="delete-room-btn" onclick="deletePrivateRoom('${id}', event)">✖</button>`;
-        div.onclick = (e) => {
-            if (e.target.tagName !== 'BUTTON') switchPrivateRoom(id, div);
-        };
-        container.appendChild(div);
-    }
-
-    function deletePrivateRoom(id, event) {
-        event.stopPropagation();
-        let t = translations[currentLanguage];
-        if (confirm(t.confirmDelete)) {
-            delete privateRooms[id];
-            let el = document.querySelector(`[data-roomid="${id}"]`);
-            if (el) el.remove();
-            if (currentRoom === id) switchRoom('main', document.querySelector('.room-item[onclick*="main"]'));
-            alert(t.roomDeleted);
-        }
-    }
-
-    function switchPrivateRoom(id, element) {
-        switchRoom(id, element);
-    }
-
-    function openRoomSettings() {
-        let room = rooms[currentRoom] || privateRooms[currentRoom];
-        if (!room) return;
-        let t = translations[currentLanguage];
-        let usersList = room.users ? room.users.map(u => u.name).join(', ') : 'Нет участников';
-        let passwordDisplay = room.password ? room.password : (room.type === 'public' ? 'Публичная' : 'Нет пароля');
-        document.getElementById('roomInfo').innerHTML = `
-            <div class="room-info-item"><strong>${t.name}:</strong> ${room.name}</div>
-            <div class="room-info-item"><strong>${t.password}:</strong> ${passwordDisplay}</div>
-            <div class="room-info-item"><strong>${t.participants} (${room.users ? room.users.length : 0}):</strong> ${usersList}</div>
-        `;
-        document.getElementById('roomSettingsModal').classList.add('show');
-    }
-
-    function closeRoomSettings() { document.getElementById('roomSettingsModal').classList.remove('show'); }
-
-    // ========== ДРУЗЬЯ ==========
-    function openAddFriendModal() {
-        document.getElementById('addFriendModal').classList.add('show');
-        document.getElementById('userFriendCode').innerText = currentUser.friendCode;
-        document.getElementById('friendRequestStatus').innerText = '';
-        document.getElementById('friendRequestStatus').className = 'status-error';
-        document.getElementById('friendCodeInput').value = '';
-    }
-
-    function closeAddFriendModal() { document.getElementById('addFriendModal').classList.remove('show'); }
-
-    function sendFriendRequest() {
-        let code = document.getElementById('friendCodeInput').value.trim().toUpperCase();
-        let t = translations[currentLanguage];
-        let status = document.getElementById('friendRequestStatus');
-        
-        if (!code) { 
-            status.innerText = t.emptyCode; 
-            status.className = 'status-error';
-            return; 
-        }
-        if (code === currentUser.friendCode) { 
-            status.innerText = t.selfCode; 
-            status.className = 'status-error';
-            return; 
-        }
-        
-        let foundUser = users.find(u => u.friendCode === code);
-        if (!foundUser) { 
-            status.innerText = t.userNotFound; 
-            status.className = 'status-error';
-            return; 
-        }
-        
-        if (sentRequests.some(r => r.code === code)) { 
-            status.innerText = t.alreadySent; 
-            status.className = 'status-error';
-            return; 
-        }
-        
-        sentRequests.push({ code, name: foundUser.name, avatar: foundUser.avatar });
-        status.innerText = t.requestSent;
-        status.className = 'status-success';
-        
-        setTimeout(() => {
-            if (!friendRequests.some(r => r.code === code)) {
-                friendRequests.push({ name: foundUser.name, avatar: foundUser.avatar, code });
-                updateFriendRequests();
-            }
-        }, 2000);
-    }
-
-    function updateFriendRequests() {
-        let div = document.getElementById('friendRequests');
-        if (!div) return;
-        let t = translations[currentLanguage];
-        if (!friendRequests.length) { div.innerHTML = ''; return; }
-        div.innerHTML = '<div class="rooms-title">ЗАПРОСЫ</div>';
-        friendRequests.forEach((req, i) => {
-            div.innerHTML += `
-                <div class="friend-request">
-                    <div class="friend-avatar">${req.avatar}</div>
-                    <div class="friend-name">${req.name}</div>
-                    <div class="request-buttons">
-                        <button class="accept-btn" onclick="acceptRequest(${i})">${t.accept}</button>
-                        <button class="decline-btn" onclick="declineRequest(${i})">${t.decline}</button>
-                    </div>
-                </div>
-            `;
-        });
-    }
-
-    function acceptRequest(i) {
-        let req = friendRequests[i];
-        friends.push({ ...req, online: true, lastSeen: 'только что' });
-        friendRequests.splice(i, 1);
-        updateFriendRequests();
-        updateFriendsList();
-    }
-
-    function declineRequest(i) { friendRequests.splice(i, 1); updateFriendRequests(); }
-
-    function updateFriendsList() {
-        let div = document.getElementById('friendsList');
-        let t = translations[currentLanguage];
-        if (!friends.length) { div.innerHTML = `<div style="text-align:center;padding:20px">${t.noFriends}</div>`; return; }
-        div.innerHTML = '';
-        friends.forEach((f, i) => {
-            div.innerHTML += `
-                <div class="friend-item">
-                    <div class="friend-avatar ${f.online ? 'online' : ''}">${f.avatar}</div>
-                    <div class="friend-info">
-                        <div class="friend-name">${f.name}</div>
-                        <div class="friend-status ${f.online ? '' : 'offline'}">${f.online ? '🟢 ' + t.online : '⚫ ' + t.offline}</div>
-                    </div>
-                    <div class="friend-actions">
-                        <button class="friend-action-btn message" onclick="openPrivateChat(${i})">💬</button>
-                        <button class="friend-action-btn delete" onclick="deleteFriend(${i})">🗑️</button>
-                        <button class="friend-action-btn ban" onclick="banFriend(${i})">⛔</button>
-                    </div>
-                </div>
-            `;
-        });
-    }
-
-    function deleteFriend(i) { friends.splice(i, 1); updateFriendsList(); }
-
-    function banFriend(i) {
-        let banned = friends[i];
-        blacklist.push(banned);
-        friends.splice(i, 1);
-        updateFriendsList();
-        updateBlacklist();
-    }
-
-    function updateBlacklist() {
-        let div = document.getElementById('blacklist');
-        let t = translations[currentLanguage];
-        if (!blacklist.length) { div.innerHTML = ''; return; }
-        div.innerHTML = '<div class="rooms-title">' + t.blacklist + '</div>';
-        blacklist.forEach((u, i) => {
-            div.innerHTML += `
-                <div class="friend-item">
-                    <div class="friend-avatar">${u.avatar}</div>
-                    <div class="friend-name">${u.name}</div>
-                    <button class="friend-action-btn" onclick="unbanUser(${i})">↩️</button>
-                </div>
-            `;
-        });
-    }
-
-    function unbanUser(i) {
-        let unbanned = blacklist[i];
-        friends.push({ ...unbanned, online: false, lastSeen: 'разблокирован' });
-        blacklist.splice(i, 1);
-        updateFriendsList();
-        updateBlacklist();
-    }
-
-    // ========== ЛИЧНЫЙ ЧАТ ==========
-    let currentPrivateChat = null;
-    function openPrivateChat(i) {
-        let friend = friends[i];
-        currentPrivateChat = friend;
-        document.getElementById('privateChatName').innerText = `Чат с ${friend.name}`;
-        document.getElementById('privateChat').classList.add('show');
-        document.getElementById('privateChatMessages').innerHTML = '';
-    }
-
-    function closePrivateChat() {
-        document.getElementById('privateChat').classList.remove('show');
-        currentPrivateChat = null;
-    }
-
-    function sendPrivateMessage() {
-        let input = document.getElementById('privateChatInput');
-        let text = input.value.trim();
-        if (!text || !currentPrivateChat) return;
-        let div = document.createElement('div');
-        div.className = 'message own';
-        div.innerHTML = `<div class="message-content">${text}<div class="message-time">только что</div></div>`;
-        document.getElementById('privateChatMessages').appendChild(div);
-        input.value = '';
-    }
-
-    // ========== ЭМОДЗИ ДЛЯ СООБЩЕНИЙ ==========
-    function toggleEmojiPicker() { document.getElementById('emojiPicker').classList.toggle('show'); }
-    function addEmoji(emoji) { document.getElementById('messageInput').value += emoji; }
-
-    // ========== ПОПАПЫ ==========
-    function toggleUsersPopup() { document.getElementById('usersPopup').classList.toggle('show'); }
-
-    // ========== СОКЕТ СОБЫТИЯ ==========
-    function joinRoomSocket(roomId) {
-        if (!socket) return;
-        
-        socketCurrentRoom = roomId;
-        socket.emit('room:join', roomId, (data) => {
-            if (data && data.error) {
-                console.error('Ошибка подключения к комнате:', data.error);
-                addSystemMessage('Ошибка подключения к комнате');
-                return;
-            }
+        function updateUsersListSocket(users) {
+            let list = document.getElementById('usersList');
+            if (!list) return;
+            list.innerHTML = '';
             
-            let messagesArea = document.getElementById('messagesArea');
-            if (messagesArea) messagesArea.innerHTML = '';
-            
-            if (data && data.messages && Array.isArray(data.messages) && data.messages.length > 0) {
-                data.messages.forEach(msg => {
-                    if (msg && msg.author && msg.text) {
-                        addMessageToUI(msg.author, msg.text, msg.time, msg.author === currentUser?.name);
+            if (Array.isArray(users) && users.length > 0) {
+                let fragment = document.createDocumentFragment();
+                users.forEach(user => {
+                    if (user && user.name) {
+                        let div = document.createElement('div');
+                        div.className = 'user-item';
+                        div.innerHTML = `<span class="user-status"></span> ${escapeHtml(user.name)}`;
+                        fragment.appendChild(div);
                     }
                 });
-            } else {
-                addSystemMessage(translations[currentLanguage].welcome);
+                list.appendChild(fragment);
             }
-            
-            let onlineEl = document.getElementById('onlineCount');
-            if (onlineEl) onlineEl.innerText = (data && data.users && data.users.length) ? data.users.length : 0;
-            
-            if (data && data.users) {
-                updateUsersListSocket(data.users);
+        }
+
+        document.addEventListener('click', function(e) {
+            let picker = document.getElementById('emojiPicker');
+            let btn = document.querySelector('.emoji-picker-btn');
+            if (picker && picker.classList.contains('show') && !picker.contains(e.target) && !btn?.contains(e.target)) {
+                picker.classList.remove('show');
+            }
+            let popup = document.getElementById('usersPopup');
+            let counter = document.querySelector('.online-counter');
+            if (popup && popup.classList.contains('show') && !popup.contains(e.target) && !counter?.contains(e.target)) {
+                popup.classList.remove('show');
             }
         });
-    }
 
-    socket.on('message:new', (message) => {
-        if (!currentUser) return;
-        if (message && message.author !== currentUser.name) {
-            addMessageToUI(message.author, message.text, message.time, false);
+        function openDevModal() {
+            document.getElementById('devModal').classList.add('show');
+            document.getElementById('devCodeInput').value = '';
+            document.getElementById('devError').style.display = 'none';
         }
-    });
 
-    socket.on('online:update', (count) => {
-        let el = document.getElementById('onlineCount');
-        if (el) el.innerText = count || 0;
-    });
+        function closeDevModal() {
+            document.getElementById('devModal').classList.remove('show');
+        }
 
-    socket.on('user:joined', (userName) => {
-        if (!currentUser || !userName) return;
-        if (userName !== currentUser.name) {
-            addSystemMessage(`${userName} присоединился к чату`);
+        function checkDevCode() {
+            let code = document.getElementById('devCodeInput').value;
+            if (code === DEV_CODE) {
+                closeDevModal();
+                enableDevMode();
+            } else {
+                document.getElementById('devError').style.display = 'block';
+            }
         }
-    });
 
-    socket.on('user:left', (userName) => {
-        if (!currentUser || !userName) return;
-        if (userName !== currentUser.name) {
-            addSystemMessage(`${userName} покинул чат`);
-        }
-    });
-
-    socket.on('message:deleted', (data) => {
-        const { messageId } = data;
-        let messageElement = document.getElementById(`msg-${messageId}`);
-        if (messageElement) {
-            messageElement.remove();
-        }
-        
-        let room = rooms[currentRoom] || privateRooms[currentRoom];
-        if (room && room.messages) {
-            room.messages = room.messages.filter(msg => msg.id != messageId);
-        }
-        
-        if (messageReactions[messageId]) {
-            delete messageReactions[messageId];
-        }
-    });
-
-    function updateUsersListSocket(users) {
-        let list = document.getElementById('usersList');
-        if (!list) return;
-        list.innerHTML = '';
-        
-        if (Array.isArray(users) && users.length > 0) {
-            let fragment = document.createDocumentFragment();
-            users.forEach(user => {
-                if (user && user.name) {
-                    let div = document.createElement('div');
-                    div.className = 'user-item';
-                    div.innerHTML = `<span class="user-status"></span> ${escapeHtml(user.name)}`;
-                    fragment.appendChild(div);
+        function enableDevMode() {
+            if (currentUser) {
+                currentUser.isDev = true;
+                currentUser.isAdmin = true;
+                alert('✅ Режим разработчика активирован!\nТеперь вы можете удалять любые сообщения');
+                
+                if (currentRoom) {
+                    loadRoomMessages(currentRoom);
                 }
-            });
-            list.appendChild(fragment);
+                
+                showDevPanel();
+            } else {
+                alert('Сначала войдите в чат');
+                closeDevModal();
+            }
         }
-    }
 
-    document.addEventListener('click', function(e) {
-        let picker = document.getElementById('emojiPicker');
-        let btn = document.querySelector('.emoji-picker-btn');
-        if (picker && picker.classList.contains('show') && !picker.contains(e.target) && !btn?.contains(e.target)) {
-            picker.classList.remove('show');
+        function showDevPanel() {
+            if (document.getElementById('devPanel')) {
+                document.getElementById('devPanel').remove();
+            }
+            
+            let panel = document.createElement('div');
+            panel.id = 'devPanel';
+            panel.className = 'dev-panel show';
+            
+            panel.innerHTML = `
+                <div class="dev-panel-header">
+                    <span>👨‍💻 Панель разработчика</span>
+                    <button onclick="this.parentElement.parentElement.remove()" style="background:none; border:none; color:white; font-size:20px; cursor:pointer;">×</button>
+                </div>
+                <div class="dev-panel-content">
+                    <div style="margin-bottom:10px; padding:10px; background:#f0f3f8; border-radius:10px;">
+                        <strong>Вы вошли как разработчик</strong><br>
+                        <small>Можете удалять любые сообщения</small>
+                    </div>
+                    <div id="devUsersList"></div>
+                </div>
+            `;
+            
+            document.body.appendChild(panel);
+            updateDevUsersList();
         }
-        let popup = document.getElementById('usersPopup');
-        let counter = document.querySelector('.online-counter');
-        if (popup && popup.classList.contains('show') && !popup.contains(e.target) && !counter?.contains(e.target)) {
-            popup.classList.remove('show');
+
+        function updateDevUsersList() {
+            let listDiv = document.getElementById('devUsersList');
+            if (!listDiv) return;
+            
+            let usersList = [];
+            if (rooms[currentRoom] && rooms[currentRoom].users) {
+                usersList = rooms[currentRoom].users;
+            } else if (privateRooms[currentRoom] && privateRooms[currentRoom].users) {
+                usersList = privateRooms[currentRoom].users;
+            }
+            
+            listDiv.innerHTML = '';
+            
+            usersList.forEach(user => {
+                if (!user || !user.name) return;
+                
+                let div = document.createElement('div');
+                div.className = 'dev-user-item';
+                div.innerHTML = `
+                    <div class="dev-user-info">
+                        <div class="dev-user-avatar" style="background: ${getGradientByTheme(user.avatarBackground || 'theme-default')}">${user.avatar || '👤'}</div>
+                        <div class="dev-user-name">${user.name}</div>
+                    </div>
+                    ${user.name !== currentUser?.name ? `<button class="dev-delete-btn" onclick="deleteAllUserMessages('${user.name}')">🗑️ Все сообщения</button>` : ''}
+                `;
+                listDiv.appendChild(div);
+            });
         }
-    });
-</script>
+
+        function deleteAllUserMessages(username) {
+            if (!confirm(`Удалить ВСЕ сообщения пользователя ${username}?`)) return;
+            
+            let room = rooms[currentRoom] || privateRooms[currentRoom];
+            if (!room || !room.messages) return;
+            
+            let userMessages = room.messages.filter(msg => msg.author === username);
+            
+            userMessages.forEach(msg => {
+                let msgElement = document.getElementById(`msg-${msg.id}`);
+                if (msgElement) msgElement.remove();
+                
+                socket.emit('message:delete', {
+                    messageId: msg.id,
+                    roomId: currentRoom
+                });
+            });
+            
+            room.messages = room.messages.filter(msg => msg.author !== username);
+            
+            alert(`Удалено ${userMessages.length} сообщений`);
+            updateDevUsersList();
+        }
+    </script>
 </body>
 </html>
