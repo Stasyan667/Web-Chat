@@ -16,7 +16,7 @@ const io = new Server(server, {
 });
 
 // Подключение к MongoDB Atlas
-mongoose.connect('mongodb+srv://Stasyan667:Stasyan667@stasyan667.etwjg3c.mongodb.net/chatdb?retryWrites=true&w=majority')
+mongoose.connect('mongodb+srv://Stasyan667:stasyan6111@stasyan667.etwjg3c.mongodb.net/chatdb?retryWrites=true&w=majority')
     .then(() => console.log('✅ Подключено к MongoDB'))
     .catch(err => console.log('❌ Ошибка MongoDB:', err));
 
