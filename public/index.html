@@ -2042,13 +2042,8 @@
         };
         let privateRooms = {};
         let friends = [];
-        let blacklist = [];
         let friendRequests = [];
-        let sentRequests = [];
-        let lastRequestTime = 0;
-        const COOLDOWN_TIME = 60000;
         let messageReactions = {};
-        let pinnedMessages = {};
         const DEV_CODE = "stasyan2024";
         let currentOtp = null;
 
@@ -2382,7 +2377,6 @@
             
             updateFriendsList();
             updateFriendRequests();
-            updateBlacklist();
             
             if (currentRoom) {
                 let room = rooms[currentRoom] || privateRooms[currentRoom];
@@ -2490,9 +2484,6 @@
             document.getElementById('roomsTab').style.display = tab === 'rooms' ? 'block' : 'none';
             document.getElementById('countriesTab').style.display = tab === 'countries' ? 'block' : 'none';
             document.getElementById('friendsTab').style.display = tab === 'friends' ? 'block' : 'none';
-            if (tab === 'friends') {
-                socket.emit('friends:get');
-            }
         }
 
         function switchRoom(roomId, element) {
@@ -2882,7 +2873,10 @@
             let name = document.getElementById('roomNameInput').value.trim();
             let pass = document.getElementById('roomPasswordInput').value.trim();
             let t = translations[currentLanguage];
-            if (!name || !pass) { alert('Введите название и пароль'); return; }
+            if (!name || !pass) { 
+                alert('Введите название и пароль'); 
+                return; 
+            }
             
             socket.emit('room:create', { name, password });
             
@@ -2979,47 +2973,6 @@
             status.className = 'status-info';
         }
 
-        socket.on('friend:requestSent', (data) => {
-            let status = document.getElementById('friendRequestStatus');
-            status.innerText = '✅ Запрос отправлен!';
-            status.className = 'status-success';
-            setTimeout(closeAddFriendModal, 1500);
-        });
-
-        socket.on('friend:request', (data) => {
-            friendRequests.push({
-                fromId: data.fromId,
-                name: data.fromName,
-                avatar: data.fromAvatar,
-                code: data.fromCode,
-                requestId: data.requestId
-            });
-            updateFriendRequests();
-            addSystemMessage(`📨 Новый запрос в друзья от ${data.fromName}`);
-        });
-
-        socket.on('friend:accepted', (data) => {
-            friends.push({
-                id: data.id,
-                name: data.name,
-                avatar: data.avatar,
-                online: true
-            });
-            updateFriendsList();
-            addSystemMessage(`✅ ${data.name} принял ваш запрос в друзья`);
-        });
-
-        socket.on('friend:error', (message) => {
-            let status = document.getElementById('friendRequestStatus');
-            status.innerText = message;
-            status.className = 'status-error';
-        });
-
-        socket.on('friends:list', (friendsList) => {
-            friends = friendsList;
-            updateFriendsList();
-        });
-
         function updateFriendRequests() {
             let div = document.getElementById('friendRequests');
             if (!div) return;
@@ -3056,7 +3009,9 @@
 
         function declineRequest(i) { 
             let req = friendRequests[i];
-            socket.emit('friend:decline', { requestId: req.requestId });
+            if (req && req.requestId) {
+                socket.emit('friend:decline', { requestId: req.requestId });
+            }
             friendRequests.splice(i, 1); 
             updateFriendRequests(); 
         }
@@ -3136,7 +3091,7 @@
                         room.onlineCount = data.onlineCount || data.users.length;
                     }
                     updateUsersPopup(data.users);
-                    document.getElementById('onlineCount').innerText = room.onlineCount || 0;
+                    document.getElementById('onlineCount').innerText = room?.onlineCount || 0;
                 }
                 
                 if (data && data.messages) {
@@ -3247,27 +3202,78 @@
         });
 
         socket.on('room:created', (data) => {
-            addPrivateRoomToSidebar(data.id, data.name);
-            alert('✅ Комната создана!');
+            if (data && data.id && data.name) {
+                addPrivateRoomToSidebar(data.id, data.name);
+                alert('✅ Комната создана!');
+            }
         });
 
         socket.on('room:joined', (data) => {
-            if (!privateRooms[data.id]) {
-                privateRooms[data.id] = {
-                    name: data.name,
-                    type: 'private',
-                    users: [],
-                    messages: [],
-                    onlineCount: 0
-                };
+            if (data && data.id && data.name) {
+                if (!privateRooms[data.id]) {
+                    privateRooms[data.id] = {
+                        name: data.name,
+                        type: 'private',
+                        users: [],
+                        messages: [],
+                        onlineCount: 0
+                    };
+                }
+                addPrivateRoomToSidebar(data.id, data.name);
+                let element = document.querySelector(`[data-roomid="${data.id}"]`);
+                if (element) switchPrivateRoom(data.id, element);
             }
-            addPrivateRoomToSidebar(data.id, data.name);
-            let element = document.querySelector(`[data-roomid="${data.id}"]`);
-            if (element) switchPrivateRoom(data.id, element);
         });
 
         socket.on('room:error', (message) => {
             alert('❌ ' + message);
+        });
+
+        socket.on('friend:requestSent', (data) => {
+            let status = document.getElementById('friendRequestStatus');
+            status.innerText = '✅ Запрос отправлен!';
+            status.className = 'status-success';
+            setTimeout(closeAddFriendModal, 1500);
+        });
+
+        socket.on('friend:request', (data) => {
+            if (data && data.fromId && data.fromName) {
+                friendRequests.push({
+                    fromId: data.fromId,
+                    name: data.fromName,
+                    avatar: data.fromAvatar || '👤',
+                    requestId: data.requestId
+                });
+                updateFriendRequests();
+                addSystemMessage(`📨 Новый запрос в друзья от ${data.fromName}`);
+            }
+        });
+
+        socket.on('friend:accepted', (data) => {
+            if (data && data.id && data.name) {
+                friends.push({
+                    id: data.id,
+                    name: data.name,
+                    avatar: data.avatar || '👤',
+                    avatarBackground: data.avatarBackground || 'theme-default',
+                    online: true
+                });
+                updateFriendsList();
+                addSystemMessage(`✅ ${data.name} принял ваш запрос в друзья`);
+            }
+        });
+
+        socket.on('friend:error', (message) => {
+            let status = document.getElementById('friendRequestStatus');
+            status.innerText = message;
+            status.className = 'status-error';
+        });
+
+        socket.on('friends:list', (friendsList) => {
+            if (Array.isArray(friendsList)) {
+                friends = friendsList;
+                updateFriendsList();
+            }
         });
 
         function updateUsersListSocket(users) {
