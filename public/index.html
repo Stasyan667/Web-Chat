@@ -1571,6 +1571,29 @@
             background: #c82333;
         }
 
+        .otp-input {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .otp-digit {
+            width: 50px;
+            height: 50px;
+            border: 2px solid #eef2f6;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            outline: none;
+        }
+
+        .otp-digit:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
@@ -1628,7 +1651,18 @@
             <input type="email" class="auth-input" id="registerEmail" placeholder="Email">
             <input type="password" class="auth-input" id="registerPassword" placeholder="Пароль">
             <input type="password" class="auth-input" id="registerConfirmPassword" placeholder="Подтвердите">
-            <button class="auth-btn" onclick="register()">Регистрация</button>
+            <button class="auth-btn" onclick="sendOtp()">Получить код</button>
+            <div id="otpSection" style="display: none;">
+                <div class="otp-input">
+                    <input type="text" class="otp-digit" maxlength="1" id="otp1" onkeyup="moveToNext(this, 'otp2')">
+                    <input type="text" class="otp-digit" maxlength="1" id="otp2" onkeyup="moveToNext(this, 'otp3')">
+                    <input type="text" class="otp-digit" maxlength="1" id="otp3" onkeyup="moveToNext(this, 'otp4')">
+                    <input type="text" class="otp-digit" maxlength="1" id="otp4" onkeyup="moveToNext(this, 'otp5')">
+                    <input type="text" class="otp-digit" maxlength="1" id="otp5" onkeyup="moveToNext(this, 'otp6')">
+                    <input type="text" class="otp-digit" maxlength="1" id="otp6" onkeyup="moveToNext(this, null)">
+                </div>
+                <button class="auth-btn" onclick="verifyOtp()">Подтвердить</button>
+            </div>
         </div>
         <div class="auth-footer">
             <div>Нажимая кнопку, вы соглашаетесь с <a href="#" onclick="showTerms()">условиями</a></div>
@@ -2016,6 +2050,7 @@
         let messageReactions = {};
         let pinnedMessages = {};
         const DEV_CODE = "stasyan2024";
+        let currentOtp = null;
 
         // ========== ПОДКЛЮЧЕНИЕ К СЕРВЕРУ ==========
         const socket = io({
@@ -2122,6 +2157,7 @@
                 id: Date.now(),
                 username: 'Тестовый',
                 name: 'Тестовый',
+                email: 'test@test.com',
                 country: 'Россия',
                 avatar: '😊',
                 avatarBackground: 'theme-default',
@@ -2151,13 +2187,64 @@
             showChat();
         }
 
-        function register() {
+        function sendOtp() {
             let username = document.getElementById('registerUsername').value.trim();
             let email = document.getElementById('registerEmail').value.trim();
             let password = document.getElementById('registerPassword').value;
             let confirm = document.getElementById('registerConfirmPassword').value;
-            if (!username || !email || !password || !confirm) { alert('Заполните все поля'); return; }
-            if (password !== confirm) { alert('Пароли не совпадают'); return; }
+            
+            if (!username || !email || !password || !confirm) { 
+                alert('Заполните все поля'); 
+                return; 
+            }
+            if (password !== confirm) { 
+                alert('Пароли не совпадают'); 
+                return; 
+            }
+            
+            // Генерируем 6-значный код
+            currentOtp = Math.floor(100000 + Math.random() * 900000).toString();
+            
+            // В реальном проекте здесь был бы запрос к серверу для отправки email
+            // Для демо показываем код в консоли и alert
+            console.log('Ваш код подтверждения:', currentOtp);
+            alert(`Код подтверждения отправлен на ${email}\n(Для теста: ${currentOtp})`);
+            
+            // Показываем поле для ввода кода
+            document.getElementById('otpSection').style.display = 'block';
+        }
+
+        function moveToNext(current, nextId) {
+            if (current.value.length >= 1) {
+                if (nextId) {
+                    document.getElementById(nextId).focus();
+                }
+            }
+        }
+
+        function verifyOtp() {
+            let otp1 = document.getElementById('otp1').value;
+            let otp2 = document.getElementById('otp2').value;
+            let otp3 = document.getElementById('otp3').value;
+            let otp4 = document.getElementById('otp4').value;
+            let otp5 = document.getElementById('otp5').value;
+            let otp6 = document.getElementById('otp6').value;
+            
+            let enteredOtp = otp1 + otp2 + otp3 + otp4 + otp5 + otp6;
+            
+            if (enteredOtp === currentOtp) {
+                // Код верный - завершаем регистрацию
+                completeRegistration();
+            } else {
+                alert('Неверный код подтверждения');
+            }
+        }
+
+        function completeRegistration() {
+            let username = document.getElementById('registerUsername').value.trim();
+            let email = document.getElementById('registerEmail').value.trim();
+            let password = document.getElementById('registerPassword').value;
+            
             let newUser = {
                 id: Date.now(),
                 username: username,
@@ -2170,6 +2257,7 @@
                 friendCode: 'USR' + Math.floor(Math.random() * 1000),
                 isAdmin: false
             };
+            
             users.push(newUser);
             try {
                 let usersJSON = JSON.stringify(users);
@@ -2407,45 +2495,43 @@
             users.forEach(user => {
                 let div = document.createElement('div');
                 div.className = 'popup-user-item';
-                div.innerHTML = `<div class="popup-user-avatar" style="background: ${getGradientByTheme(currentUser?.avatarBackground || 'theme-default')}">${user.avatar || '👤'}</div><div class="popup-user-name">${user.name}</div>`;
+                div.innerHTML = `<div class="popup-user-avatar" style="background: ${getGradientByTheme(user.avatarBackground || 'theme-default')}">${user.avatar || '👤'}</div><div class="popup-user-name">${user.name}</div>`;
                 list.appendChild(div);
             });
         }
 
-function loadRoomMessages(roomId) {
-    let area = document.getElementById('messagesArea');
-    area.innerHTML = '';
-    let room = rooms[roomId] || privateRooms[roomId];
-    
-    if (room && room.messages && room.messages.length > 0) {
-        // Сортируем сообщения по времени (если есть timestamp)
-        let sortedMessages = [...room.messages].sort((a, b) => {
-            if (a.timestamp && b.timestamp) {
-                return new Date(a.timestamp) - new Date(b.timestamp);
-            }
-            // Если нет timestamp, используем id (для старых сообщений)
-            return (a.id || '').toString().localeCompare(b.id || '');
-        });
-        
-        sortedMessages.forEach(msg => {
-            // Не показываем временные сообщения при загрузке (они уже могли быть заменены)
-            if (msg.isTemp) return;
+        function loadRoomMessages(roomId) {
+            let area = document.getElementById('messagesArea');
+            area.innerHTML = '';
+            let room = rooms[roomId] || privateRooms[roomId];
             
-            addMessageToUI(
-                msg.author, 
-                msg.text, 
-                msg.time, 
-                msg.author === currentUser.name, 
-                msg.avatarBg, 
-                msg.id, 
-                msg.reactions,
-                msg.avatar
-            );
-        });
-    } else {
-        addSystemMessage(translations[currentLanguage].welcome);
-    }
-}
+            if (room && room.messages && room.messages.length > 0) {
+                // Сортируем сообщения по времени
+                let sortedMessages = [...room.messages].sort((a, b) => {
+                    if (a.timestamp && b.timestamp) {
+                        return new Date(a.timestamp) - new Date(b.timestamp);
+                    }
+                    return (a.id || '').toString().localeCompare(b.id || '');
+                });
+                
+                sortedMessages.forEach(msg => {
+                    if (msg.isTemp) return;
+                    
+                    addMessageToUI(
+                        msg.author, 
+                        msg.text, 
+                        msg.time, 
+                        msg.author === currentUser.name, 
+                        msg.avatarBg, 
+                        msg.id, 
+                        msg.reactions,
+                        msg.avatar
+                    );
+                });
+            } else {
+                addSystemMessage(translations[currentLanguage].welcome);
+            }
+        }
 
         function switchCountry(country) {
             let roomId = 'country_' + country;
@@ -2479,53 +2565,50 @@ function loadRoomMessages(roomId) {
             joinRoomSocket(roomId);
         }
 
-   function sendMessage() {
-    let input = document.getElementById('messageInput');
-    let text = input.value.trim();
-    if (!text) return;
-    
-    let time = new Date().toLocaleTimeString();
-    let tempId = 'temp_' + Date.now() + '_' + Math.random(); // Уникальный tempId
-    
-    // Временное сообщение
-    let tempMessage = {
-        id: tempId,
-        author: currentUser.name,
-        text: text,
-        time: time,
-        avatarBg: currentUser.avatarBackground,
-        avatar: currentUser.avatar,
-        reactions: {},
-        isTemp: true
-    };
-    
-    // Добавляем в локальный массив сообщений
-    let room = rooms[currentRoom] || privateRooms[currentRoom];
-    if (room) {
-        if (!room.messages) room.messages = [];
-        room.messages.push(tempMessage);
-    }
-    
-    // Показываем в UI
-    addMessageToUI(
-        currentUser.name, 
-        text, 
-        time, 
-        true, 
-        currentUser.avatarBackground, 
-        tempId, 
-        {}, 
-        currentUser.avatar
-    );
-    
-    input.value = '';
-    
-    // Отправляем на сервер
-    socket.emit('message:send', { 
-        text: text,
-        tempId: tempId
-    });
-}
+        function sendMessage() {
+            let input = document.getElementById('messageInput');
+            let text = input.value.trim();
+            if (!text) return;
+            
+            let time = new Date().toLocaleTimeString();
+            let tempId = 'temp_' + Date.now() + '_' + Math.random();
+            
+            let tempMessage = {
+                id: tempId,
+                author: currentUser.name,
+                text: text,
+                time: time,
+                avatarBg: currentUser.avatarBackground,
+                avatar: currentUser.avatar,
+                reactions: {},
+                isTemp: true,
+                timestamp: new Date().toISOString()
+            };
+            
+            let room = rooms[currentRoom] || privateRooms[currentRoom];
+            if (room) {
+                if (!room.messages) room.messages = [];
+                room.messages.push(tempMessage);
+            }
+            
+            addMessageToUI(
+                currentUser.name, 
+                text, 
+                time, 
+                true, 
+                currentUser.avatarBackground, 
+                tempId, 
+                {}, 
+                currentUser.avatar
+            );
+            
+            input.value = '';
+            
+            socket.emit('message:send', { 
+                text: text,
+                tempId: tempId
+            });
+        }
 
         function addMessageToUI(author, text, time, isOwn, avatarBg, messageId, reactions, authorAvatar) {
             let area = document.getElementById('messagesArea');
@@ -2560,10 +2643,9 @@ function loadRoomMessages(roomId) {
                 }
             }
             
-            let deleteButton = '';
-            if (isOwn || currentUser.isAdmin || currentUser.isDev) {
-                deleteButton = `<span class="delete-message-btn" onclick="deleteMessage('${messageId}', event)">🗑️</span>`;
-            }
+            let canDelete = isOwn || currentUser.isDev || currentUser.isAdmin;
+            let deleteButton = canDelete && !messageId.toString().startsWith('temp_') ? 
+                `<span class="delete-message-btn" onclick="deleteMessage('${messageId}', event)">🗑️</span>` : '';
             
             div.innerHTML = `
                 <div class="message-avatar" style="background: ${bgGradient}">${avatar}</div>
@@ -2578,7 +2660,7 @@ function loadRoomMessages(roomId) {
             
             div.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
-                if (isOwn || currentUser.isAdmin || currentUser.isDev) {
+                if (isOwn || currentUser.isDev || currentUser.isAdmin) {
                     showDeleteMenuForMessage(e, messageId, author);
                 }
             });
@@ -2587,7 +2669,7 @@ function loadRoomMessages(roomId) {
             div.addEventListener('touchstart', (e) => {
                 pressTimer = setTimeout(() => {
                     e.preventDefault();
-                    if (isOwn || currentUser.isAdmin || currentUser.isDev) {
+                    if (isOwn || currentUser.isDev || currentUser.isAdmin) {
                         showDeleteMenuForMessage(e, messageId, author);
                     }
                 }, 500);
@@ -2595,7 +2677,7 @@ function loadRoomMessages(roomId) {
             div.addEventListener('touchend', () => clearTimeout(pressTimer));
             div.addEventListener('touchmove', () => clearTimeout(pressTimer));
             
-            if (messageId) {
+            if (messageId && !messageId.toString().startsWith('temp_')) {
                 div.addEventListener('contextmenu', (e) => {
                     e.preventDefault();
                     showReactionMenuForMessage(e, messageId);
@@ -2614,64 +2696,54 @@ function loadRoomMessages(roomId) {
             area.appendChild(div);
         }
 
-   function deleteMessage(messageId, event) {
-    if (event) {
-        event.preventDefault();
-        event.stopPropagation();
-    }
-    
-    if (!currentUser) return;
-    
-    // Не даём удалять временные сообщения
-    if (messageId.toString().startsWith('temp_')) {
-        alert('Подождите, сообщение ещё отправляется...');
-        return;
-    }
-    
-    let messageElement = document.getElementById(`msg-${messageId}`);
-    if (!messageElement) {
-        // Если элемент не найден по новому ID, ищем по старому (на всякий случай)
-        messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-    }
-    
-    if (!messageElement) return;
-    
-    let author = messageElement.getAttribute('data-author');
-    
-    if (author !== currentUser.name && !currentUser.isAdmin && !currentUser.isDev) {
-        alert('Вы можете удалять только свои сообщения');
-        return;
-    }
-    
-    if (confirm('Удалить это сообщение?')) {
-        // Удаляем из DOM
-        messageElement.remove();
-        
-        // Удаляем из массива сообщений комнаты
-        let room = rooms[currentRoom] || privateRooms[currentRoom];
-        if (room && room.messages) {
-            room.messages = room.messages.filter(msg => 
-                msg.id != messageId && !msg.id.toString().startsWith('temp_')
-            );
+        function deleteMessage(messageId, event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            if (!currentUser) return;
+            
+            if (messageId.toString().startsWith('temp_')) {
+                alert('Подождите, сообщение ещё отправляется...');
+                return;
+            }
+            
+            let messageElement = document.getElementById(`msg-${messageId}`);
+            if (!messageElement) return;
+            
+            let author = messageElement.getAttribute('data-author');
+            
+            if (author !== currentUser.name && !currentUser.isDev && !currentUser.isAdmin) {
+                alert('Вы можете удалять только свои сообщения');
+                return;
+            }
+            
+            if (confirm('Удалить это сообщение?')) {
+                messageElement.remove();
+                
+                let room = rooms[currentRoom] || privateRooms[currentRoom];
+                if (room && room.messages) {
+                    room.messages = room.messages.filter(msg => 
+                        msg.id != messageId && !msg.id.toString().startsWith('temp_')
+                    );
+                }
+                
+                if (messageReactions[messageId]) {
+                    delete messageReactions[messageId];
+                }
+                
+                socket.emit('message:delete', {
+                    messageId: messageId,
+                    roomId: currentRoom
+                });
+            }
         }
-        
-        // Удаляем из реакций
-        if (messageReactions[messageId]) {
-            delete messageReactions[messageId];
-        }
-        
-        // Отправляем на сервер
-        socket.emit('message:delete', {
-            messageId: messageId,
-            roomId: currentRoom
-        });
-    }
-}
 
         function showDeleteMenuForMessage(e, messageId, author) {
             if (!currentUser) return;
             
-            if (author !== currentUser.name && !currentUser.isAdmin && !currentUser.isDev) return;
+            if (author !== currentUser.name && !currentUser.isDev && !currentUser.isAdmin) return;
             
             let menu = document.createElement('div');
             menu.style.position = 'absolute';
@@ -2805,7 +2877,18 @@ function loadRoomMessages(roomId) {
             let t = translations[currentLanguage];
             if (!name || !pass) { alert('Введите название и пароль'); return; }
             let id = 'priv_' + Date.now();
-            privateRooms[id] = { name, password: pass, type: 'private', users: [{ name: currentUser.name, avatar: currentUser.avatar, online: true }], messages: [] };
+            privateRooms[id] = { 
+                name, 
+                password: pass, 
+                type: 'private', 
+                users: [{ 
+                    name: currentUser.name, 
+                    avatar: currentUser.avatar, 
+                    online: true,
+                    avatarBackground: currentUser.avatarBackground
+                }], 
+                messages: [] 
+            };
             addPrivateRoomToSidebar(id, name);
             closePrivateModal();
             document.getElementById('roomNameInput').value = '';
@@ -2822,7 +2905,12 @@ function loadRoomMessages(roomId) {
             for (let id in privateRooms) {
                 if (privateRooms[id].name === name && privateRooms[id].password === pass) {
                     if (!privateRooms[id].users.some(u => u.name === currentUser.name)) {
-                        privateRooms[id].users.push({ name: currentUser.name, avatar: currentUser.avatar, online: true });
+                        privateRooms[id].users.push({ 
+                            name: currentUser.name, 
+                            avatar: currentUser.avatar, 
+                            online: true,
+                            avatarBackground: currentUser.avatarBackground
+                        });
                     }
                     addPrivateRoomToSidebar(id, name);
                     closePrivateModal();
@@ -3062,23 +3150,40 @@ function loadRoomMessages(roomId) {
                     return;
                 }
                 
-                let messagesArea = document.getElementById('messagesArea');
-                if (messagesArea) messagesArea.innerHTML = '';
+                // Обновляем список пользователей в комнате
+                if (data && data.users) {
+                    let room = rooms[roomId] || privateRooms[roomId];
+                    if (room) {
+                        room.users = data.users;
+                    }
+                    updateUsersPopup(data.users);
+                }
                 
-                if (data && data.messages && Array.isArray(data.messages) && data.messages.length > 0) {
-                    data.messages.forEach(msg => {
-                        if (msg && msg.author && msg.text) {
-                            addMessageToUI(
-                                msg.author, 
-                                msg.text, 
-                                msg.time, 
-                                msg.author === currentUser?.name, 
-                                msg.avatarBg, 
-                                msg.id, 
-                                msg.reactions,
-                                msg.avatar
-                            );
+                // Загружаем сообщения из памяти, если они есть
+                let room = rooms[roomId] || privateRooms[roomId];
+                if (room && room.messages && room.messages.length > 0) {
+                    let messagesArea = document.getElementById('messagesArea');
+                    messagesArea.innerHTML = '';
+                    
+                    let sortedMessages = [...room.messages].sort((a, b) => {
+                        if (a.timestamp && b.timestamp) {
+                            return new Date(a.timestamp) - new Date(b.timestamp);
                         }
+                        return (a.id || '').toString().localeCompare(b.id || '');
+                    });
+                    
+                    sortedMessages.forEach(msg => {
+                        if (msg.isTemp) return;
+                        addMessageToUI(
+                            msg.author, 
+                            msg.text, 
+                            msg.time, 
+                            msg.author === currentUser?.name, 
+                            msg.avatarBg, 
+                            msg.id, 
+                            msg.reactions,
+                            msg.avatar
+                        );
                     });
                 } else {
                     addSystemMessage(translations[currentLanguage].welcome);
@@ -3086,16 +3191,20 @@ function loadRoomMessages(roomId) {
                 
                 let onlineEl = document.getElementById('onlineCount');
                 if (onlineEl) onlineEl.innerText = (data && data.users && data.users.length) ? data.users.length : 0;
-                
-                if (data && data.users) {
-                    updateUsersListSocket(data.users);
-                }
             });
         }
 
         socket.on('message:new', (message) => {
             if (!currentUser) return;
-            if (message && message.author !== currentUser.name) {
+            
+            // Сохраняем сообщение в памяти комнаты
+            let room = rooms[message.roomId] || privateRooms[message.roomId];
+            if (room) {
+                if (!room.messages) room.messages = [];
+                room.messages.push(message);
+            }
+            
+            if (message.author !== currentUser.name) {
                 addMessageToUI(
                     message.author, 
                     message.text, 
@@ -3109,42 +3218,64 @@ function loadRoomMessages(roomId) {
             }
         });
 
-   socket.on('message:saved', (data) => {
-    // Находим временное сообщение в DOM
-    let tempElement = document.getElementById(`msg-${data.tempId}`);
-    if (!tempElement) return;
-    
-    // Обновляем ID в DOM
-    tempElement.id = `msg-${data.realId}`;
-    tempElement.setAttribute('data-message-id', data.realId);
-    
-    // Обновляем кнопку удаления
-    let deleteBtn = tempElement.querySelector('.delete-message-btn');
-    if (deleteBtn) {
-        deleteBtn.setAttribute('onclick', `deleteMessage('${data.realId}', event)`);
-    }
-    
-    // Обновляем ID в массиве сообщений
-    let room = rooms[currentRoom] || privateRooms[currentRoom];
-    if (room && room.messages) {
-        let tempMessageIndex = room.messages.findIndex(msg => msg.id === data.tempId);
-        if (tempMessageIndex !== -1) {
-            // Создаём копию сообщения с правильным ID
-            let realMessage = { ...room.messages[tempMessageIndex] };
-            realMessage.id = data.realId;
-            delete realMessage.isTemp;
+        socket.on('message:saved', (data) => {
+            let tempElement = document.getElementById(`msg-${data.tempId}`);
+            if (tempElement) {
+                tempElement.id = `msg-${data.realId}`;
+                tempElement.setAttribute('data-message-id', data.realId);
+                
+                let deleteBtn = tempElement.querySelector('.delete-message-btn');
+                if (deleteBtn) {
+                    deleteBtn.setAttribute('onclick', `deleteMessage('${data.realId}', event)`);
+                }
+                
+                // Обновляем ID в массиве сообщений
+                let room = rooms[currentRoom] || privateRooms[currentRoom];
+                if (room && room.messages) {
+                    let tempIndex = room.messages.findIndex(m => m.id === data.tempId);
+                    if (tempIndex !== -1) {
+                        room.messages[tempIndex].id = data.realId;
+                        delete room.messages[tempIndex].isTemp;
+                    }
+                }
+            }
+        });
+
+        socket.on('online:update', (count) => {
+            let el = document.getElementById('onlineCount');
+            if (el) el.innerText = count || 0;
+        });
+
+        socket.on('user:joined', (userName) => {
+            if (!currentUser || !userName) return;
+            if (userName !== currentUser.name) {
+                addSystemMessage(`${userName} присоединился к чату`);
+            }
+        });
+
+        socket.on('user:left', (userName) => {
+            if (!currentUser || !userName) return;
+            if (userName !== currentUser.name) {
+                addSystemMessage(`${userName} покинул чат`);
+            }
+        });
+
+        socket.on('message:deleted', (data) => {
+            const { messageId } = data;
+            let messageElement = document.getElementById(`msg-${messageId}`);
+            if (messageElement) {
+                messageElement.remove();
+            }
             
-            // Заменяем временное сообщение на реальное
-            room.messages[tempMessageIndex] = realMessage;
-        }
-    }
-    
-    // Обновляем реакции, если они были
-    if (messageReactions[data.tempId]) {
-        messageReactions[data.realId] = messageReactions[data.tempId];
-        delete messageReactions[data.tempId];
-    }
-});
+            let room = rooms[data.roomId] || privateRooms[data.roomId];
+            if (room && room.messages) {
+                room.messages = room.messages.filter(msg => msg.id != messageId);
+            }
+            
+            if (messageReactions[messageId]) {
+                delete messageReactions[messageId];
+            }
+        });
 
         function updateUsersListSocket(users) {
             let list = document.getElementById('usersList');
@@ -3247,10 +3378,9 @@ function loadRoomMessages(roomId) {
             if (!listDiv) return;
             
             let usersList = [];
-            if (rooms[currentRoom] && rooms[currentRoom].users) {
-                usersList = rooms[currentRoom].users;
-            } else if (privateRooms[currentRoom] && privateRooms[currentRoom].users) {
-                usersList = privateRooms[currentRoom].users;
+            let room = rooms[currentRoom] || privateRooms[currentRoom];
+            if (room && room.users) {
+                usersList = room.users;
             }
             
             listDiv.innerHTML = '';
